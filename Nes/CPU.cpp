@@ -1,19 +1,12 @@
 ﻿#include <iostream>
+#include "cpu.h"
 
-class NESCPU {
-
-
-private:
-	uint8_t A, X, Y, S;
-	uint8_t P = 0;
-	uint16_t PC;
+cpu::cpu() {
+	InitopcodeTable();
+}
+uint8_t cpu::memory[0x10000] = {};
 
 
-
-	static uint8_t memory[0x10000]; //memory size 2KB
-	int cycles; // cycles counter
-	typedef void (NESCPU::* OpcodeTable)(uint8_t*);
-	OpcodeTable opcodeTable[256];
 
 
 
@@ -23,7 +16,7 @@ private:
 	//LDA
 	//LDA cycle cost 
 
-	void LDA_Immediate(uint8_t* memory) {
+	void cpu::LDA_Immediate(uint8_t* memory) {
 		//Opcode then operand 2 bytes and 2 cycles
 		A = memory[PC + 1];
 		CheckRegister(A);
@@ -32,7 +25,7 @@ private:
 		cycles += 2;
 	}
 
-	void LDA_Zero_Page(uint8_t* memory) {
+	void cpu::LDA_Zero_Page(uint8_t* memory) {
 
 		uint8_t location = memory[PC + 1]; // get location
 		A = memory[location];// store A in it
@@ -43,7 +36,7 @@ private:
 
 	}
 
-	void LDA_Zero_Page_X(uint8_t* memory) {
+	void cpu::LDA_Zero_Page_X(uint8_t* memory) {
 		//Add X to operand and store A
 
 		uint8_t address = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -56,7 +49,7 @@ private:
 
 	}
 
-	void LDA_Absolute(uint8_t* memory) {
+	void cpu::LDA_Absolute(uint8_t* memory) {
 		//16bit address using pc+2 <<8 + pc+1 bitshift set it to A
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
@@ -67,7 +60,7 @@ private:
 		cycles += 4;
 
 	}
-	void LDA_Absolute_X(uint8_t* memory) {
+	void cpu::LDA_Absolute_X(uint8_t* memory) {
 		//16bit address  using pc+2 << 8 pc+1 then +x
 		//Bytes 3, cycles 5
 		// if page crossed + 1 cycle
@@ -83,7 +76,7 @@ private:
 
 	}
 
-	void  LDA_Absolute_Y(uint8_t* memory) {
+	void  cpu::LDA_Absolute_Y(uint8_t* memory) {
 		//16bit address using pc+2 << 8 pc+1 then +y
 		//Bytes 3, cycles 5
 		// if page crossed + 1 cycle\
@@ -101,7 +94,7 @@ private:
 
 	}
 
-	void  LDA_Indirect_X(uint8_t* memory) {
+	void  cpu::LDA_Indirect_X(uint8_t* memory) {
 		//
 		// Bytes 2, cycles 6
 		uint8_t index = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -112,7 +105,7 @@ private:
 		PC += 2;
 		cycles += 6;
 	}
-	void  LDA_Indirect_Y(uint8_t* memory) {
+	void  cpu::LDA_Indirect_Y(uint8_t* memory) {
 		//
 		// Bytes 2, cycles 6
 			// if page crossed + 1 cycle
@@ -132,7 +125,7 @@ private:
 	}
 
 	//STA
-	void STA_Zero_Page(uint8_t* memory) {
+	void cpu::STA_Zero_Page(uint8_t* memory) {
 		//opcode then a memory location to store A
 
 		uint8_t location = memory[PC + 1]; // get location
@@ -141,7 +134,7 @@ private:
 		cycles += 3;
 
 	}
-	void STA_Zero_Page_X(uint8_t* memory) {
+	void cpu::STA_Zero_Page_X(uint8_t* memory) {
 		//Add X to operand and store A
 
 		uint8_t address = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -150,7 +143,7 @@ private:
 		cycles += 3;
 
 	}
-	void STA_Absolute(uint8_t* memory) {
+	void cpu::STA_Absolute(uint8_t* memory) {
 		//16bit address using pc+2 <<8 + pc+1 bitshift set it to A
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
@@ -159,7 +152,7 @@ private:
 		cycles += 4;
 
 	}
-	void STA_Absolute_X(uint8_t* memory) {
+	void cpu::STA_Absolute_X(uint8_t* memory) {
 		//16bit address  using pc+2 << 8 pc+1 then +x
 		//Bytes 3, cycles 5
 		uint16_t address = (memory[PC + 2] << 8 | memory[PC + 1]) + X;
@@ -168,7 +161,7 @@ private:
 		cycles += 5;
 
 	}
-	void  STA_Absolute_Y(uint8_t* memory) {
+	void  cpu::STA_Absolute_Y(uint8_t* memory) {
 		//16bit address using pc+2 << 8 pc+1 then +y
 		//Bytes 3, cycles 5
 		uint16_t address = (memory[PC + 2] << 8 | memory[PC + 1]) + Y;
@@ -177,7 +170,7 @@ private:
 		cycles += 5;
 
 	}
-	void  STA_Indirect_X(uint8_t* memory) {
+	void  cpu::STA_Indirect_X(uint8_t* memory) {
 		//
 		// Bytes 2, cycles 6
 		uint8_t index = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -186,7 +179,7 @@ private:
 		PC += 2;
 		cycles += 6;
 	}
-	void  STA_Indirect_Y(uint8_t* memory) {
+	void  cpu::STA_Indirect_Y(uint8_t* memory) {
 		//
 		// Bytes 2, cycles 6
 		uint8_t index = (memory[PC + 1] + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -196,7 +189,7 @@ private:
 		cycles += 6;
 	}
 
-	void STX_Zero_Page(uint8_t* memory) {
+	void cpu::STX_Zero_Page(uint8_t* memory) {
 
 		//Store X into memory location
 		uint8_t location = memory[PC + 1]; // get location
@@ -204,14 +197,14 @@ private:
 		PC += 2;
 		cycles += 3;
 	}
-	void STX_Zero_Page_Y(uint8_t* memory) {
+	void cpu::STX_Zero_Page_Y(uint8_t* memory) {
 		uint8_t address = (memory[PC + 1] + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
 		memory[address] = X;
 		PC += 2;
 		cycles += 4;
 
 	}
-	void STX_Absolute(uint8_t* memory) {
+	void cpu::STX_Absolute(uint8_t* memory) {
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
 		memory[address] = X;
@@ -219,7 +212,7 @@ private:
 		cycles += 4;
 	}
 
-	void STY_Zero_Page(uint8_t* memory) {
+	void cpu::STY_Zero_Page(uint8_t* memory) {
 
 		//Store Y into memory location
 		uint8_t location = memory[PC + 1]; // get location
@@ -227,14 +220,14 @@ private:
 		PC += 2;
 		cycles += 3;
 	}
-	void STY_Zero_Page_X(uint8_t* memory) {
+	void cpu::STY_Zero_Page_X(uint8_t* memory) {
 		uint8_t address = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
 		memory[address] = Y;
 		PC += 2;
 		cycles += 4;
 
 	}
-	void STY_Absolute(uint8_t* memory) {
+	void cpu::STY_Absolute(uint8_t* memory) {
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
 		memory[address] = Y;
@@ -242,7 +235,7 @@ private:
 		cycles += 4;
 	}
 	//LDX
-	void LDX_Immediate(uint8_t* memory) {
+	void cpu::LDX_Immediate(uint8_t* memory) {
 		//Opcode then operand 2 bytes and 2 cycles
 		X = memory[PC + 1];
 		CheckRegister(X);
@@ -251,7 +244,7 @@ private:
 		cycles += 2;
 	}
 
-	void LDX_Zero_Page(uint8_t* memory) {
+	void cpu::LDX_Zero_Page(uint8_t* memory) {
 
 		uint8_t location = memory[PC + 1]; // get location
 		X = memory[location];// store X in it
@@ -262,7 +255,7 @@ private:
 
 	}
 
-	void LDX_Zero_Page_Y(uint8_t* memory) {
+	void cpu::LDX_Zero_Page_Y(uint8_t* memory) {
 		//Add X to operand and store A
 
 		uint8_t address = (memory[PC + 1] + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -274,7 +267,7 @@ private:
 
 	}
 
-	void LDX_Absolute(uint8_t* memory) {
+	void cpu::LDX_Absolute(uint8_t* memory) {
 		//16bit address using pc+2 <<8 + pc+1 bitshift set it to A
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
@@ -285,7 +278,7 @@ private:
 		cycles += 4;
 
 	}
-	void LDX_Absolute_Y(uint8_t* memory) {
+	void cpu::LDX_Absolute_Y(uint8_t* memory) {
 		//16bit address  using pc+2 << 8 pc+1 then +x
 		//Bytes 3, cycles 5
 		// if page crossed + 1 cycle
@@ -302,7 +295,7 @@ private:
 
 	}
 
-	void LDY_Immediate(uint8_t* memory) {
+	void cpu::LDY_Immediate(uint8_t* memory) {
 		//Opcode then operand 2 bytes and 2 cycles
 		Y = memory[PC + 1];
 		CheckRegister(Y);
@@ -311,7 +304,7 @@ private:
 		cycles += 2;
 	}
 
-	void LDY_Zero_Page(uint8_t* memory) {
+	void cpu::LDY_Zero_Page(uint8_t* memory) {
 
 		uint8_t location = memory[PC + 1]; // get location
 		Y = memory[location];// store X in it
@@ -322,7 +315,7 @@ private:
 
 	}
 
-	void LDY_Zero_Page_X(uint8_t* memory) {
+	void cpu::LDY_Zero_Page_X(uint8_t* memory) {
 		//Add X to operand and store A
 
 		uint8_t address = (memory[PC + 1] + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
@@ -334,7 +327,7 @@ private:
 
 	}
 
-	void LDY_Absolute(uint8_t* memory) {
+	void cpu::LDY_Absolute(uint8_t* memory) {
 		//16bit address using pc+2 <<8 + pc+1 bitshift set it to A
 		//Bytes 3 cycles 4
 		uint16_t address = memory[PC + 2] << 8 | memory[PC + 1];
@@ -345,7 +338,7 @@ private:
 		cycles += 4;
 
 	}
-	void LDY_Absolute_X(uint8_t* memory) {
+	void cpu::LDY_Absolute_X(uint8_t* memory) {
 		//16bit address  using pc+2 << 8 pc+1 then +x
 		//Bytes 3, cycles 5
 		// if page crossed + 1 cycle
@@ -362,7 +355,7 @@ private:
 
 	}
 
-	void PHA_Implied(uint8_t* memory ) {
+	void cpu::PHA_Implied(uint8_t* memory ) {
 
 		memory[0x0100 + S] = A;
 		S--;
@@ -370,7 +363,7 @@ private:
 		cycles += 3;
 
 	}
-	void PLA_Implied(uint8_t* memory) {
+	void cpu::PLA_Implied(uint8_t* memory) {
 
 		A = memory[0x0100 + S];
 		S++;
@@ -379,21 +372,21 @@ private:
 		cycles += 4;
 
 	}
-	void PHP_Implied(uint8_t* memory) {
+	void cpu::PHP_Implied(uint8_t* memory) {
 		memory[0x0100 + S] = P;
 		S--;
 		PC += 1;
 		cycles += 3;
 
 	}
-	void PLP_Implied(uint8_t* memory) {
+	void cpu::PLP_Implied(uint8_t* memory) {
 		P = memory[0x0100 + S];
 		S++;
 		PC += 1;
 		cycles += 4;
 	}
 
-	void TAX_Implied(uint8_t* memory) {
+	void cpu::TAX_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 		X = A;
 		CheckRegister(X);
@@ -401,7 +394,7 @@ private:
 		cycles += 2;
 	}
 
-	void TAY_Implied(uint8_t* memory) {
+	void cpu::TAY_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		Y = A;
@@ -410,7 +403,7 @@ private:
 		cycles += 2;
 	}
 
-	void TXA_Implied(uint8_t* memory) {
+	void cpu::TXA_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		A = X;
@@ -419,7 +412,7 @@ private:
 		cycles += 2;
 	}
 
-	void TYA_Implied(uint8_t* memory) {
+	void cpu::TYA_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		A = Y;
@@ -427,7 +420,7 @@ private:
 		PC += 1;
 		cycles += 2;
 	}
-	void INX_Implied(uint8_t* memory) {
+	void cpu::INX_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		X++;
@@ -435,7 +428,7 @@ private:
 		PC += 1;
 		cycles += 2;
 	}
-	void INY_Implied(uint8_t* memory) {
+	void cpu::INY_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		Y++;
@@ -444,7 +437,7 @@ private:
 		cycles += 2;
 	}
 
-	void DEX_Implied(uint8_t* memory) {
+	void cpu::DEX_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		X--;
@@ -452,7 +445,7 @@ private:
 		PC += 1;
 		cycles += 2;
 	}
-	void DEY_Implied(uint8_t* memory) {
+	void cpu::DEY_Implied(uint8_t* memory) {
 		// Dont need the memory access but itll make the loop simplier
 
 		Y--;
@@ -460,7 +453,7 @@ private:
 		PC += 1;
 		cycles += 2;
 	}
-	void JSR_Implied(uint8_t* memory) {
+	void cpu::JSR_Implied(uint8_t* memory) {
 		//Do not understand this one very well
 		uint16_t target_address = (memory[PC + 2] << 8 | memory[PC + 1]);
 		uint16_t return_address = PC + 2;
@@ -472,7 +465,7 @@ private:
 		cycles += 6;
 		
 	}
-	void RTS_Implied(uint8_t* memory) {
+	void cpu::RTS_Implied(uint8_t* memory) {
 		//Do not understand this one very well
 
 		S++;
@@ -484,7 +477,7 @@ private:
 		cycles += 6;
 
 	}
-	void BRK_Implied(uint8_t* memory) {
+	void cpu::BRK_Implied(uint8_t* memory) {
 		//Do not understand this one very well
 
 		PC++;
@@ -503,7 +496,7 @@ private:
 
 
 	//Register check Function for negaive and 0
-	void CheckRegister(uint8_t reg) {
+	void cpu::CheckRegister(uint8_t reg) {
 		if (reg == 0) { SetZero(); }
 		else { ClearZero(); }
 		if ((reg & 0b10000000) != 0) { SetNegative(); }
@@ -514,77 +507,76 @@ private:
 	
 
 
-	void InitopcodeTable() {
+	void cpu::InitopcodeTable() {
 		//LDA
 // LDA – Load Accumulator
-		opcodeTable[0xA9] = &NESCPU::LDA_Immediate;      // LDA #immediate
-		opcodeTable[0xA5] = &NESCPU::LDA_Zero_Page;      // LDA zp
-		opcodeTable[0xB5] = &NESCPU::LDA_Zero_Page_X;    // LDA zp,X
-		opcodeTable[0xAD] = &NESCPU::LDA_Absolute;       // LDA abs
-		opcodeTable[0xBD] = &NESCPU::LDA_Absolute_X;     // LDA abs,X
-		opcodeTable[0xB9] = &NESCPU::LDA_Absolute_Y;     // LDA abs,Y
-		opcodeTable[0xA1] = &NESCPU::LDA_Indirect_X;     // LDA (zp,X)
-		opcodeTable[0xB1] = &NESCPU::LDA_Indirect_Y;     // LDA (zp),Y
+		opcodeTable[0xA9] = &cpu::LDA_Immediate;      // LDA #immediate
+		opcodeTable[0xA5] = &cpu::LDA_Zero_Page;      // LDA zp
+		opcodeTable[0xB5] = &cpu::LDA_Zero_Page_X;    // LDA zp,X
+		opcodeTable[0xAD] = &cpu::LDA_Absolute;       // LDA abs
+		opcodeTable[0xBD] = &cpu::LDA_Absolute_X;     // LDA abs,X
+		opcodeTable[0xB9] = &cpu::LDA_Absolute_Y;     // LDA abs,Y
+		opcodeTable[0xA1] = &cpu::LDA_Indirect_X;     // LDA (zp,X)
+		opcodeTable[0xB1] = &cpu::LDA_Indirect_Y;     // LDA (zp),Y
 
 		// STA – Store Accumulator
-		opcodeTable[0x85] = &NESCPU::STA_Zero_Page;      // STA zp
-		opcodeTable[0x95] = &NESCPU::STA_Zero_Page_X;    // STA zp,X
-		opcodeTable[0x8D] = &NESCPU::STA_Absolute;       // STA abs
-		opcodeTable[0x9D] = &NESCPU::STA_Absolute_X;     // STA abs,X
-		opcodeTable[0x99] = &NESCPU::STA_Absolute_Y;     // STA abs,Y
-		opcodeTable[0x81] = &NESCPU::STA_Indirect_X;     // STA (zp,X)
-		opcodeTable[0x91] = &NESCPU::STA_Indirect_Y;     // STA (zp),Y
+		opcodeTable[0x85] = &cpu::STA_Zero_Page;      // STA zp
+		opcodeTable[0x95] = &cpu::STA_Zero_Page_X;    // STA zp,X
+		opcodeTable[0x8D] = &cpu::STA_Absolute;       // STA abs
+		opcodeTable[0x9D] = &cpu::STA_Absolute_X;     // STA abs,X
+		opcodeTable[0x99] = &cpu::STA_Absolute_Y;     // STA abs,Y
+		opcodeTable[0x81] = &cpu::STA_Indirect_X;     // STA (zp,X)
+		opcodeTable[0x91] = &cpu::STA_Indirect_Y;     // STA (zp),Y
 
 		// STX – Store X Register
-		opcodeTable[0x86] = &NESCPU::STX_Zero_Page;      // STX zp
-		opcodeTable[0x96] = &NESCPU::STX_Zero_Page_Y;    // STX zp,Y
-		opcodeTable[0x8E] = &NESCPU::STX_Absolute;       // STX abs
+		opcodeTable[0x86] = &cpu::STX_Zero_Page;      // STX zp
+		opcodeTable[0x96] = &cpu::STX_Zero_Page_Y;    // STX zp,Y
+		opcodeTable[0x8E] = &cpu::STX_Absolute;       // STX abs
 
 		// STY – Store Y Register
-		opcodeTable[0x84] = &NESCPU::STY_Zero_Page;      // STY zp
-		opcodeTable[0x94] = &NESCPU::STY_Zero_Page_X;    // STY zp,X
-		opcodeTable[0x8C] = &NESCPU::STY_Absolute;       // STY abs
+		opcodeTable[0x84] = &cpu::STY_Zero_Page;      // STY zp
+		opcodeTable[0x94] = &cpu::STY_Zero_Page_X;    // STY zp,X
+		opcodeTable[0x8C] = &cpu::STY_Absolute;       // STY abs
 
 		// LDX – Load X Register
-		opcodeTable[0xA2] = &NESCPU::LDX_Immediate;      // LDX #imm
-		opcodeTable[0xA6] = &NESCPU::LDX_Zero_Page;      // LDX zp
-		opcodeTable[0xB6] = &NESCPU::LDX_Zero_Page_Y;    // LDX zp,Y
-		opcodeTable[0xAE] = &NESCPU::LDX_Absolute;       // LDX abs
-		opcodeTable[0xBE] = &NESCPU::LDX_Absolute_Y;     // LDX abs,Y
+		opcodeTable[0xA2] = &cpu::LDX_Immediate;      // LDX #imm
+		opcodeTable[0xA6] = &cpu::LDX_Zero_Page;      // LDX zp
+		opcodeTable[0xB6] = &cpu::LDX_Zero_Page_Y;    // LDX zp,Y
+		opcodeTable[0xAE] = &cpu::LDX_Absolute;       // LDX abs
+		opcodeTable[0xBE] = &cpu::LDX_Absolute_Y;     // LDX abs,Y
 
 		// LDY – Load Y Register
-		opcodeTable[0xA0] = &NESCPU::LDY_Immediate;      // LDY #imm
-		opcodeTable[0xA4] = &NESCPU::LDY_Zero_Page;      // LDY zp
-		opcodeTable[0xB4] = &NESCPU::LDY_Zero_Page_X;    // LDY zp,X
-		opcodeTable[0xAC] = &NESCPU::LDY_Absolute;       // LDY abs
-		opcodeTable[0xBC] = &NESCPU::LDY_Absolute_X;     // LDY abs,X
+		opcodeTable[0xA0] = &cpu::LDY_Immediate;      // LDY #imm
+		opcodeTable[0xA4] = &cpu::LDY_Zero_Page;      // LDY zp
+		opcodeTable[0xB4] = &cpu::LDY_Zero_Page_X;    // LDY zp,X
+		opcodeTable[0xAC] = &cpu::LDY_Absolute;       // LDY abs
+		opcodeTable[0xBC] = &cpu::LDY_Absolute_X;     // LDY abs,X
 
 		// Stack Operations
-		opcodeTable[0x48] = &NESCPU::PHA_Implied;        // PHA (push A)
-		opcodeTable[0x68] = &NESCPU::PLA_Implied;        // PLA (pull A)
-		opcodeTable[0x08] = &NESCPU::PHP_Implied;        // PHP (push P)
-		opcodeTable[0x28] = &NESCPU::PLP_Implied;        // PLP (pull P)
+		opcodeTable[0x48] = &cpu::PHA_Implied;        // PHA (push A)
+		opcodeTable[0x68] = &cpu::PLA_Implied;        // PLA (pull A)
+		opcodeTable[0x08] = &cpu::PHP_Implied;        // PHP (push P)
+		opcodeTable[0x28] = &cpu::PLP_Implied;        // PLP (pull P)
 
 		// Register Transfers
-		opcodeTable[0xAA] = &NESCPU::TAX_Implied;        // TAX (A → X)
-		opcodeTable[0x8A] = &NESCPU::TXA_Implied;        // TXA (X → A)
-		opcodeTable[0xA8] = &NESCPU::TAY_Implied;        // TAY (A → Y)
-		opcodeTable[0x98] = &NESCPU::TYA_Implied;        // TYA (Y → A)
+		opcodeTable[0xAA] = &cpu::TAX_Implied;        // TAX (A → X)
+		opcodeTable[0x8A] = &cpu::TXA_Implied;        // TXA (X → A)
+		opcodeTable[0xA8] = &cpu::TAY_Implied;        // TAY (A → Y)
+		opcodeTable[0x98] = &cpu::TYA_Implied;        // TYA (Y → A)
 
 		// Increments / Decrements
-		opcodeTable[0xE8] = &NESCPU::INX_Implied;        // INX
-		opcodeTable[0xCA] = &NESCPU::DEX_Implied;        // DEX
-		opcodeTable[0xC8] = &NESCPU::INY_Implied;        // INY
-		opcodeTable[0x88] = &NESCPU::DEY_Implied;        // DEY
+		opcodeTable[0xE8] = &cpu::INX_Implied;        // INX
+		opcodeTable[0xCA] = &cpu::DEX_Implied;        // DEX
+		opcodeTable[0xC8] = &cpu::INY_Implied;        // INY
+		opcodeTable[0x88] = &cpu::DEY_Implied;        // DEY
 
 		// Control Flow
-		opcodeTable[0x20] = &NESCPU::JSR_Implied;        // JSR abs
-		opcodeTable[0x60] = &NESCPU::RTS_Implied;        // RTS
-		opcodeTable[0x00] = &NESCPU::BRK_Implied;        // BRK
+		opcodeTable[0x20] = &cpu::JSR_Implied;        // JSR abs
+		opcodeTable[0x60] = &cpu::RTS_Implied;        // RTS
+		opcodeTable[0x00] = &cpu::BRK_Implied;        // BRK
 
 	}
 	
-	public:
 
 
 	//Carry
@@ -599,64 +591,64 @@ private:
 	//7 6 5 4 3 2 1 0
 	//Set P flag bits
 	// Register Check Functions
-	void SetCarry() {
+	void cpu::SetCarry() {
 		P |= 0b00000001;
 	}
-	void SetZero() {
+	void cpu::SetZero() {
 		P |= 0b00000010;
 	}
-	void SetInterrupt() {
+	void cpu::SetInterrupt() {
 		P |= 0b00000100;
 	}
-	void SetDecimal() {
+	void cpu::SetDecimal() {
 		P |= 0b00001000;
 	}
-	void SetBreak() {
+	void cpu::SetBreak() {
 		P |= 0b00010000;
 	}
-	void SetOverflow() {
+	void cpu::SetOverflow() {
 		P |= 0b01000000;
 	}
-	void SetNegative() {
+	void cpu::SetNegative() {
 		P |= 0b10000000;
 	}
-	void SetUnused() {
+	void cpu::SetUnused() {
 		P |= 0b00100000;
 	}
-	void ClearCarry() { P &= ~0b00000001; }
-	void ClearZero() { P &= ~0b00000010; }
-	void ClearInterrupt() { P &= ~0b00000100; }
-	void ClearDecimal() { P &= ~0b00001000; }
-	void ClearBreak() { P &= ~0b00010000; }
-	void ClearUnused() { P &= ~0b00100000; }
-	void ClearOverflow() { P &= ~0b01000000; }
-	void ClearNegative() { P &= ~0b10000000; }
+	void cpu::ClearCarry() { P &= ~0b00000001; }
+	void cpu::ClearZero() { P &= ~0b00000010; }
+	void cpu::ClearInterrupt() { P &= ~0b00000100; }
+	void cpu::ClearDecimal() { P &= ~0b00001000; }
+	void cpu::ClearBreak() { P &= ~0b00010000; }
+	void cpu::ClearUnused() { P &= ~0b00100000; }
+	void cpu::ClearOverflow() { P &= ~0b01000000; }
+	void cpu::ClearNegative() { P &= ~0b10000000; }
 
-	bool GetCarry() {
+	bool cpu::GetCarry() {
 		return (P & 0b00000001) !=0;
 	}
-	bool GetZero() {
+	bool cpu::GetZero() {
 		return (P & 0b00000010) != 0;
 	}
-	bool GetInterrupt() {
+	bool cpu::GetInterrupt() {
 		return (P & 0b00000100) != 0;
 	}
-	bool GetDecimal() {
+	bool cpu::GetDecimal() {
 		return(P & 0b00001000) != 0;
 	}
-	bool GetBreak() {
+	bool cpu::GetBreak() {
 		return (P & 0b00010000) != 0;
 	}
-	bool GetOverflow() {
+	bool cpu::GetOverflow() {
 		return (P & 0b01000000) != 0;
 	}
-	bool GetNegative() {
+	bool cpu::GetNegative() {
 		return (P & 0b10000000) != 0;
 	}
-	bool GetUnused() {
+	bool cpu::GetUnused() {
 		return (P & 0b00100000) !=0;
 	}
-	void Reset() {
+	void cpu::Reset() {
 		//nesdev.org/wiki/CPU_power_up_state
 		//Interrupt set to 1, AXY set to 0, FFFC = 00 and FFFD = x80.S starts at xFD
 		memory[0xFFFC] = 0x00;
@@ -671,11 +663,10 @@ private:
 
 	//void Connect
 
-};
+
 
 int main() {
-	NESCPU cpu;
-	//NESBUS bus;
+	cpu cpu;
 	cpu.Reset();
 
 
