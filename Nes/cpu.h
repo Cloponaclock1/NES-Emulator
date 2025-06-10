@@ -1,12 +1,13 @@
 #pragma once
 #include <cstdint>
-#include "CPU.cpp"
+
 
 
 class cpu {
 public:
     cpu();
     void Reset();
+    void ConnectBus(Bus* bus);
  
 
     // Flag setters
@@ -45,12 +46,11 @@ private:
     uint8_t P = 0;
     uint16_t PC;
     int cycles;
+    Bus* bus = nullptr;
 
-    // Static memory (64KB)
-    static uint8_t memory[0x10000];
 
     // Opcode Table
-    typedef void (cpu::* OpcodeTable)(uint8_t*);
+    typedef void (cpu::* OpcodeTable)();
     OpcodeTable opcodeTable[256];
 
     // Internal helpers
@@ -58,59 +58,59 @@ private:
     void CheckRegister(uint8_t reg);
 
     // Opcode functions (from your code)
-    void LDA_Immediate(uint8_t*);
-    void LDA_Zero_Page(uint8_t*);
-    void LDA_Zero_Page_X(uint8_t*);
-    void LDA_Absolute(uint8_t*);
-    void LDA_Absolute_X(uint8_t*);
-    void LDA_Absolute_Y(uint8_t*);
-    void LDA_Indirect_X(uint8_t*);
-    void LDA_Indirect_Y(uint8_t*);
+    void LDA_Immediate();
+    void LDA_Zero_Page();
+    void LDA_Zero_Page_X();
+    void LDA_Absolute();
+    void LDA_Absolute_X();
+    void LDA_Absolute_Y();
+    void LDA_Indirect_X();
+    void LDA_Indirect_Y();
 
-    void STA_Zero_Page(uint8_t*);
-    void STA_Zero_Page_X(uint8_t*);
-    void STA_Absolute(uint8_t*);
-    void STA_Absolute_X(uint8_t*);
-    void STA_Absolute_Y(uint8_t*);
-    void STA_Indirect_X(uint8_t*);
-    void STA_Indirect_Y(uint8_t*);
+    void STA_Zero_Page();
+    void STA_Zero_Page_X();
+    void STA_Absolute();
+    void STA_Absolute_X();
+    void STA_Absolute_Y();
+    void STA_Indirect_X();
+    void STA_Indirect_Y();
 
-    void STX_Zero_Page(uint8_t*);
-    void STX_Zero_Page_Y(uint8_t*);
-    void STX_Absolute(uint8_t*);
+    void STX_Zero_Page();
+    void STX_Zero_Page_Y();
+    void STX_Absolute();
 
-    void STY_Zero_Page(uint8_t*);
-    void STY_Zero_Page_X(uint8_t*);
-    void STY_Absolute(uint8_t*);
+    void STY_Zero_Page();
+    void STY_Zero_Page_X();
+    void STY_Absolute();
 
-    void LDX_Immediate(uint8_t*);
-    void LDX_Zero_Page(uint8_t*);
-    void LDX_Zero_Page_Y(uint8_t*);
-    void LDX_Absolute(uint8_t*);
-    void LDX_Absolute_Y(uint8_t*);
+    void LDX_Immediate();
+    void LDX_Zero_Page();
+    void LDX_Zero_Page_Y();
+    void LDX_Absolute();
+    void LDX_Absolute_Y();
 
-    void LDY_Immediate(uint8_t*);
-    void LDY_Zero_Page(uint8_t*);
-    void LDY_Zero_Page_X(uint8_t*);
-    void LDY_Absolute(uint8_t*);
-    void LDY_Absolute_X(uint8_t*);
+    void LDY_Immediate();
+    void LDY_Zero_Page();
+    void LDY_Zero_Page_X();
+    void LDY_Absolute();
+    void LDY_Absolute_X();
 
-    void PHA_Implied(uint8_t*);
-    void PLA_Implied(uint8_t*);
-    void PHP_Implied(uint8_t*);
-    void PLP_Implied(uint8_t*);
+    void PHA_Implied();
+    void PLA_Implied();
+    void PHP_Implied();
+    void PLP_Implied();
 
-    void TAX_Implied(uint8_t*);
-    void TAY_Implied(uint8_t*);
-    void TXA_Implied(uint8_t*);
-    void TYA_Implied(uint8_t*);
+    void TAX_Implied();
+    void TAY_Implied();
+    void TXA_Implied();
+    void TYA_Implied();
 
-    void INX_Implied(uint8_t*);
-    void INY_Implied(uint8_t*);
-    void DEX_Implied(uint8_t*);
-    void DEY_Implied(uint8_t*);
+    void INX_Implied();
+    void INY_Implied();
+    void DEX_Implied();
+    void DEY_Implied();
 
-    void JSR_Implied(uint8_t*);
-    void RTS_Implied(uint8_t*);
-    void BRK_Implied(uint8_t*);
+    void JSR_Implied();
+    void RTS_Implied();
+    void BRK_Implied();
 };
