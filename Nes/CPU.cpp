@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 
 class NESCPU {
 
@@ -364,12 +364,142 @@ private:
 
 	void PHA_Implied(uint8_t* memory ) {
 
-		//memory[]
-		//PC += 1;
-		//cycles += 3;
+		memory[0x0100 + S] = A;
+		S--;
+		PC += 1;
+		cycles += 3;
 
 	}
+	void PLA_Implied(uint8_t* memory) {
 
+		A = memory[0x0100 + S];
+		S++;
+		CheckRegister(A);
+		PC += 1;
+		cycles += 4;
+
+	}
+	void PHP_Implied(uint8_t* memory) {
+		memory[0x0100 + S] = P;
+		S--;
+		PC += 1;
+		cycles += 3;
+
+	}
+	void PLP_Implied(uint8_t* memory) {
+		P = memory[0x0100 + S];
+		S++;
+		PC += 1;
+		cycles += 4;
+	}
+
+	void TAX_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+		X = A;
+		CheckRegister(X);
+		PC += 1;
+		cycles += 2;
+	}
+
+	void TAY_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		Y = A;
+		CheckRegister(Y);
+		PC += 1;
+		cycles += 2;
+	}
+
+	void TXA_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		A = X;
+		CheckRegister(A);
+		PC += 1;
+		cycles += 2;
+	}
+
+	void TYA_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		A = Y;
+		CheckRegister(A);
+		PC += 1;
+		cycles += 2;
+	}
+	void INX_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		X++;
+		CheckRegister(X);
+		PC += 1;
+		cycles += 2;
+	}
+	void INY_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		Y++;
+		CheckRegister(Y);
+		PC += 1;
+		cycles += 2;
+	}
+
+	void DEX_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		X--;
+		CheckRegister(X);
+		PC += 1;
+		cycles += 2;
+	}
+	void DEY_Implied(uint8_t* memory) {
+		// Dont need the memory access but itll make the loop simplier
+
+		Y--;
+		CheckRegister(Y);
+		PC += 1;
+		cycles += 2;
+	}
+	void JSR_Implied(uint8_t* memory) {
+		//Do not understand this one very well
+		uint16_t target_address = (memory[PC + 2] << 8 | memory[PC + 1]);
+		uint16_t return_address = PC + 2;
+		memory[0x0100 + S] = (return_address >> 8);
+		S--;
+		memory[0x0100 + S] = (return_address & 0xFF);
+		S--;
+		PC = target_address;
+		cycles += 6;
+		
+	}
+	void RTS_Implied(uint8_t* memory) {
+		//Do not understand this one very well
+
+		S++;
+		uint8_t low = memory[0x0100 + S];
+		S++;
+		uint8_t high = memory[0x0100 + S];
+		PC = high << 8 | low;
+		PC += 1;
+		cycles += 6;
+
+	}
+	void BRK_Implied(uint8_t* memory) {
+		//Do not understand this one very well
+
+		PC++;
+		memory[0x0100 +S] = (PC >>8);
+		S--;
+		memory[0x0100 + S] = (PC & 0xFF);
+		S--;
+
+		memory[0x0100 + S] = P | 0x30;
+		S--;
+		SetInterrupt();
+		
+		PC = (memory[0xFFFF] << 8 ) | memory[0xFFFE];
+		cycles += 7;
+	}
 
 
 	//Register check Function for negaive and 0
@@ -380,77 +510,80 @@ private:
 		else { ClearNegative(); }
 
 	}
+	
+	
 
 
 	void InitopcodeTable() {
 		//LDA
-		opcodeTable[0xA9] = &NESCPU::LDA_Immediate;
+// LDA – Load Accumulator
+		opcodeTable[0xA9] = &NESCPU::LDA_Immediate;      // LDA #immediate
+		opcodeTable[0xA5] = &NESCPU::LDA_Zero_Page;      // LDA zp
+		opcodeTable[0xB5] = &NESCPU::LDA_Zero_Page_X;    // LDA zp,X
+		opcodeTable[0xAD] = &NESCPU::LDA_Absolute;       // LDA abs
+		opcodeTable[0xBD] = &NESCPU::LDA_Absolute_X;     // LDA abs,X
+		opcodeTable[0xB9] = &NESCPU::LDA_Absolute_Y;     // LDA abs,Y
+		opcodeTable[0xA1] = &NESCPU::LDA_Indirect_X;     // LDA (zp,X)
+		opcodeTable[0xB1] = &NESCPU::LDA_Indirect_Y;     // LDA (zp),Y
 
-		opcodeTable[0xA5] = &NESCPU::LDA_Zero_Page; // store A into memory
-		opcodeTable[0xB5] = &NESCPU::LDA_Zero_Page_X; // store A into memory +X
-		opcodeTable[0xAD] = &NESCPU::LDA_Absolute; // store A into memory +Y
-		opcodeTable[0xBD] = &NESCPU::LDA_Absolute_X; // store A into memory +X
-		opcodeTable[0xB9] = &NESCPU::LDA_Absolute_Y; // store A into memory +Y
-		opcodeTable[0xA1] = &NESCPU::LDA_Indirect_X; // store A into memory +Y
-		opcodeTable[0xB1] = &NESCPU::LDA_Indirect_Y; // store A into memory +Y
-		//STA
-		opcodeTable[0x85] = &NESCPU::STA_Zero_Page; // store A into memory
-		opcodeTable[0x95] = &NESCPU::STA_Zero_Page_X; // store A into memory +X
-		opcodeTable[0x8D] = &NESCPU::STA_Absolute; // store A into memory +Y
-		opcodeTable[0x9D] = &NESCPU::STA_Absolute_X; // store A into memory +X
-		opcodeTable[0x99] = &NESCPU::STA_Absolute_Y; // store A into memory +Y
-		opcodeTable[0x81] = &NESCPU::STA_Indirect_X; // store A into memory +Y
-		opcodeTable[0x91] = &NESCPU::STA_Indirect_Y; // store A into memory +Y
-		//STX
-		opcodeTable[0x86] = &NESCPU::STX_Zero_Page; // store X into memory
-		opcodeTable[0x96] = &NESCPU::STX_Zero_Page_Y; // store X into memory +Y
-		opcodeTable[0x8E] = &NESCPU::STX_Absolute; // store X into memory 16bit
-		//STY
-		opcodeTable[0x84] = &NESCPU::STY_Zero_Page; // store X into memory
-		opcodeTable[0x94] = &NESCPU::STY_Zero_Page_X; // store X into memory +Y
-		opcodeTable[0x8C] = &NESCPU::STY_Absolute; // store X into memory 16bit
-		//LDX
-		opcodeTable[0xA2] = &NESCPU::LDX_Immediate;// load value to A
-		opcodeTable[0xA6] = &NESCPU::LDX_Zero_Page; // store A into memory
-		opcodeTable[0xB6] = &NESCPU::LDX_Zero_Page_Y; // store A into memory +X
-		opcodeTable[0xAE] = &NESCPU::LDX_Absolute; // store A into memory +Y
-		opcodeTable[0xBE] = &NESCPU::LDX_Absolute_Y; // store A into memory +X
+		// STA – Store Accumulator
+		opcodeTable[0x85] = &NESCPU::STA_Zero_Page;      // STA zp
+		opcodeTable[0x95] = &NESCPU::STA_Zero_Page_X;    // STA zp,X
+		opcodeTable[0x8D] = &NESCPU::STA_Absolute;       // STA abs
+		opcodeTable[0x9D] = &NESCPU::STA_Absolute_X;     // STA abs,X
+		opcodeTable[0x99] = &NESCPU::STA_Absolute_Y;     // STA abs,Y
+		opcodeTable[0x81] = &NESCPU::STA_Indirect_X;     // STA (zp,X)
+		opcodeTable[0x91] = &NESCPU::STA_Indirect_Y;     // STA (zp),Y
 
-		//LDY
-		opcodeTable[0xA0] = &NESCPU::LDY_Immediate;// load value to A
-		opcodeTable[0xA4] = &NESCPU::LDY_Zero_Page; // store A into memory
-		opcodeTable[0xB4] = &NESCPU::LDY_Zero_Page_X; // store A into memory +X
-		opcodeTable[0xAC] = &NESCPU::LDY_Absolute; // store A into memory +Y
-		opcodeTable[0xBC] = &NESCPU::LDY_Absolute_X; // store A into memory +X
+		// STX – Store X Register
+		opcodeTable[0x86] = &NESCPU::STX_Zero_Page;      // STX zp
+		opcodeTable[0x96] = &NESCPU::STX_Zero_Page_Y;    // STX zp,Y
+		opcodeTable[0x8E] = &NESCPU::STX_Absolute;       // STX abs
 
-		//PHA
+		// STY – Store Y Register
+		opcodeTable[0x84] = &NESCPU::STY_Zero_Page;      // STY zp
+		opcodeTable[0x94] = &NESCPU::STY_Zero_Page_X;    // STY zp,X
+		opcodeTable[0x8C] = &NESCPU::STY_Absolute;       // STY abs
 
-		//PLA
+		// LDX – Load X Register
+		opcodeTable[0xA2] = &NESCPU::LDX_Immediate;      // LDX #imm
+		opcodeTable[0xA6] = &NESCPU::LDX_Zero_Page;      // LDX zp
+		opcodeTable[0xB6] = &NESCPU::LDX_Zero_Page_Y;    // LDX zp,Y
+		opcodeTable[0xAE] = &NESCPU::LDX_Absolute;       // LDX abs
+		opcodeTable[0xBE] = &NESCPU::LDX_Absolute_Y;     // LDX abs,Y
 
-		//PHP
+		// LDY – Load Y Register
+		opcodeTable[0xA0] = &NESCPU::LDY_Immediate;      // LDY #imm
+		opcodeTable[0xA4] = &NESCPU::LDY_Zero_Page;      // LDY zp
+		opcodeTable[0xB4] = &NESCPU::LDY_Zero_Page_X;    // LDY zp,X
+		opcodeTable[0xAC] = &NESCPU::LDY_Absolute;       // LDY abs
+		opcodeTable[0xBC] = &NESCPU::LDY_Absolute_X;     // LDY abs,X
 
-		//PLP
+		// Stack Operations
+		opcodeTable[0x48] = &NESCPU::PHA_Implied;        // PHA (push A)
+		opcodeTable[0x68] = &NESCPU::PLA_Implied;        // PLA (pull A)
+		opcodeTable[0x08] = &NESCPU::PHP_Implied;        // PHP (push P)
+		opcodeTable[0x28] = &NESCPU::PLP_Implied;        // PLP (pull P)
 
-		//TAX
+		// Register Transfers
+		opcodeTable[0xAA] = &NESCPU::TAX_Implied;        // TAX (A → X)
+		opcodeTable[0x8A] = &NESCPU::TXA_Implied;        // TXA (X → A)
+		opcodeTable[0xA8] = &NESCPU::TAY_Implied;        // TAY (A → Y)
+		opcodeTable[0x98] = &NESCPU::TYA_Implied;        // TYA (Y → A)
 
-		//TXA
+		// Increments / Decrements
+		opcodeTable[0xE8] = &NESCPU::INX_Implied;        // INX
+		opcodeTable[0xCA] = &NESCPU::DEX_Implied;        // DEX
+		opcodeTable[0xC8] = &NESCPU::INY_Implied;        // INY
+		opcodeTable[0x88] = &NESCPU::DEY_Implied;        // DEY
 
-		//TAY
-
-		//TYA
-
-		//INX
-
-		//DEX
-
-		//INY
-
-		//DEY
+		// Control Flow
+		opcodeTable[0x20] = &NESCPU::JSR_Implied;        // JSR abs
+		opcodeTable[0x60] = &NESCPU::RTS_Implied;        // RTS
+		opcodeTable[0x00] = &NESCPU::BRK_Implied;        // BRK
 
 	}
-	// Register Check Functions
-
-
+	
 	public:
 
 
@@ -465,6 +598,7 @@ private:
 	//N V - B D I Z C
 	//7 6 5 4 3 2 1 0
 	//Set P flag bits
+	// Register Check Functions
 	void SetCarry() {
 		P |= 0b00000001;
 	}
@@ -486,27 +620,17 @@ private:
 	void SetNegative() {
 		P |= 0b10000000;
 	}
-	void ClearCarry() {
-		P |= 0b00000001;
+	void SetUnused() {
+		P |= 0b00100000;
 	}
-	void ClearZero() {
-		P |= 0b00000010;
-	}
-	void ClearInterrupt() {
-		P |= 0b00000100;
-	}
-	void ClearDecimal() {
-		P |= 0b00001000;
-	}
-	void ClearBreak() {
-		P |= 0b00010000;
-	}
-	void ClearOverflow() {
-		P |= 0b01000000;
-	}
-	void ClearNegative() {
-		P |= 0b10000000;
-	}
+	void ClearCarry() { P &= ~0b00000001; }
+	void ClearZero() { P &= ~0b00000010; }
+	void ClearInterrupt() { P &= ~0b00000100; }
+	void ClearDecimal() { P &= ~0b00001000; }
+	void ClearBreak() { P &= ~0b00010000; }
+	void ClearUnused() { P &= ~0b00100000; }
+	void ClearOverflow() { P &= ~0b01000000; }
+	void ClearNegative() { P &= ~0b10000000; }
 
 	bool GetCarry() {
 		return (P & 0b00000001) !=0;
@@ -529,7 +653,9 @@ private:
 	bool GetNegative() {
 		return (P & 0b10000000) != 0;
 	}
-	
+	bool GetUnused() {
+		return (P & 0b00100000) !=0;
+	}
 	void Reset() {
 		//nesdev.org/wiki/CPU_power_up_state
 		//Interrupt set to 1, AXY set to 0, FFFC = 00 and FFFD = x80.S starts at xFD
@@ -542,10 +668,14 @@ private:
 		S = 0xFD;
 		P = 0b00100000;
 	}
+
+	//void Connect
+
 };
 
 int main() {
 	NESCPU cpu;
+	//NESBUS bus;
 	cpu.Reset();
 
 
