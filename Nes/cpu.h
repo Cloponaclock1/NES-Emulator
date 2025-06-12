@@ -1,14 +1,42 @@
 #pragma once
 #include <cstdint>
-
+#include "Bus.h"
+#include <functional>
 
 
 class cpu {
 public:
     cpu();
+    Bus* bus = nullptr;
+
+    // Make gettr for opcode table varrables and registers, pc and cycles
+    typedef void (cpu::* Opcodehandler)();  // Optional for naming clarity
+
+    //Struct to hold opcode data
+    struct Opcode {
+        std::function<void()> handler;
+        uint8_t cycles;
+        uint8_t bytes;
+
+    };
+    Opcode opcodeTable[256];
+    uint8_t totalCycles = 0;
+    uint32_t clockCycles = 0;
+
+
     void Reset();
+    void clock();
+    void irq();
+    void nmi();
+    bool complete();
+
     void ConnectBus(Bus* bus);
- 
+    // Registers
+    uint8_t A, X, Y, S;
+    uint8_t P = 0;
+    uint16_t PC;
+    int cycles;
+
 
     // Flag setters
     void SetCarry();
@@ -41,76 +69,110 @@ public:
     bool GetUnused();
 
 private:
-    // Registers
-    uint8_t A, X, Y, S;
-    uint8_t P = 0;
-    uint16_t PC;
-    int cycles;
-    Bus* bus = nullptr;
 
-
-    // Opcode Table
-    typedef void (cpu::* OpcodeTable)();
-    OpcodeTable opcodeTable[256];
-
-    // Internal helpers
     void InitopcodeTable();
-    void CheckRegister(uint8_t reg);
+    void CheckByte(uint8_t reg);
 
-    // Opcode functions (from your code)
-    void LDA_Immediate();
-    void LDA_Zero_Page();
-    void LDA_Zero_Page_X();
-    void LDA_Absolute();
-    void LDA_Absolute_X();
-    void LDA_Absolute_Y();
-    void LDA_Indirect_X();
-    void LDA_Indirect_Y();
+    // Opcode functions 
+    void LDA(uint8_t value);
+    void STA(uint16_t value);
+    void STY(uint16_t value);
+    void STX(uint16_t value);
+    void ADC(uint8_t value);
+    void LDX(uint8_t value);
+   
+    void LDY(uint8_t value);
+    void PHA();
+    void PLA();
+    void PHP();
+    void PLP();
+    void TAX();
+    void TAY();
+    void TXA();
+    void TYA();
+    void INX();
+    void INY();
+    void DEX();
+    void DEY();
+    void RTS();
+    void BRK();
+    void RTI();
+    void SBC(uint8_t value);
+    void AND(uint8_t value);
+    void ASL(uint16_t value);
+    void ASL_A();
+    void BCC();
+    void BCS();
+    void BIT(uint8_t value);
+    void BEQ();
+    void BMI();
+    void BNE();
+    void BPL();
+    void BVC();
+    void BVS();
+    void CLC();
+    void CLD();
+    void CLI();
+    void CLV();
+    void CMP(uint8_t value);
+    void CPX(uint8_t value);
+    void CPY(uint8_t value);
+    void DEC(uint16_t addr);
+    void EOR(uint8_t value);
+    void INC(uint16_t value);
+    void JMP(uint16_t addr);
+    void JSR(uint16_t value);
+    void LSR_A();
+    void LSR(uint16_t value);
+    void NOP();
+    void ORA(uint8_t value);
+    void ROL(uint16_t value);
+    void ROL_A();
+    void ROR_A();
+    void ROR(uint16_t value);
+    void SEC();
+    void SED();
+    void SEI();
+    void TSX();
+    void TXS();
+    void JMPIndirect();
+    
+    
 
-    void STA_Zero_Page();
-    void STA_Zero_Page_X();
-    void STA_Absolute();
-    void STA_Absolute_X();
-    void STA_Absolute_Y();
-    void STA_Indirect_X();
-    void STA_Indirect_Y();
 
-    void STX_Zero_Page();
-    void STX_Zero_Page_Y();
-    void STX_Absolute();
+    //adressing modes
+    //Fetch
+    uint8_t FetchImmediate();
+    uint8_t FetchZeroPage();
+    uint8_t FetchZeroPageX();
+    uint8_t FetchZeroPageY();
+    uint8_t FetchAbsolute();
+    uint8_t FetchAbsoluteX();
+    uint8_t FetchAbsoluteY();
+    uint8_t FetchIndirectX();
+    uint8_t FetchIndirectY();
+    //Store
+    uint16_t StoreZeroPage();
+    uint16_t StoreZeroPageX();
+    uint16_t StoreZeroPageY();
 
-    void STY_Zero_Page();
-    void STY_Zero_Page_X();
-    void STY_Absolute();
+    uint16_t StoreAbsolute();
+    uint16_t StoreAbsoluteX();
+    uint16_t StoreAbsoluteY();
+    uint16_t StoreIndirectX();
+    uint16_t StoreIndirectY();
 
-    void LDX_Immediate();
-    void LDX_Zero_Page();
-    void LDX_Zero_Page_Y();
-    void LDX_Absolute();
-    void LDX_Absolute_Y();
 
-    void LDY_Immediate();
-    void LDY_Zero_Page();
-    void LDY_Zero_Page_X();
-    void LDY_Absolute();
-    void LDY_Absolute_X();
 
-    void PHA_Implied();
-    void PLA_Implied();
-    void PHP_Implied();
-    void PLP_Implied();
 
-    void TAX_Implied();
-    void TAY_Implied();
-    void TXA_Implied();
-    void TYA_Implied();
 
-    void INX_Implied();
-    void INY_Implied();
-    void DEX_Implied();
-    void DEY_Implied();
 
-    void JSR_Implied();
-    void RTS_Implied();
-    void BRK_Implied();
+
+
+
+
+
+
+
+
 };

@@ -1,7 +1,7 @@
 #include "Bus.h"
-#include "cpu.cpp"
 #include "cpu.h"
-
+#include "cartridge.h"
+Cartridge* cartridge = nullptr;
 
 
 Bus::Bus() {
@@ -22,13 +22,14 @@ uint8_t Bus::Read(uint16_t addr) {
 	//PPU registers
 	//8 bytes in size repeating
 	else if (addr <= 0x3FFF) {
-		return ppu->Read(addr % 8);
+		//return ppu->Read(addr % 8);
+		return 0;
 
 	}
 	//APU and I/O registers
 	//Not repeated only 1 byte
 	else if (addr <= 0x4017) {
-		return apu->Read(addr);
+		//return apu->Read(addr);
 
 	}
 	//Disabled APU and I/O stuff
@@ -38,7 +39,9 @@ uint8_t Bus::Read(uint16_t addr) {
 	//Unampped for Cartidge
 	//Not repeated
 	else if (addr <= 0xFFFF) {
-		return memory[addr];
+		//return memory[addr];
+		return cartridge ? cartridge->Read(addr) : 0;
+
 	}
 
 }
@@ -53,13 +56,13 @@ void Bus::Write(uint16_t addr, uint8_t value) {
 	//PPU registers
 	//8 bytes in size repeating
 	else if (addr <= 0x3FFF) {
-		ppu->Write((addr % 8), value);
+		//ppu->Write((addr % 8), value);
 
 	}
 	//APU and I/O registers
 	//Not repeated only 1 byte
 	else if (addr <= 0x4017) {
-		apu->Write((addr), value);
+		//apu->Write((addr), value);
 
 	}
 	//Disabled APU and I/O stuff
@@ -69,7 +72,9 @@ void Bus::Write(uint16_t addr, uint8_t value) {
 	//Unampped for Cartidge
 	//Not repeated
 	else if (addr <= 0xFFFF) {
-		cartridge->Write((addr), value);
+		//cartridge->Write((addr), value);
+		if (cartridge) cartridge->Write(addr, value);
+
 	}
 
 }
