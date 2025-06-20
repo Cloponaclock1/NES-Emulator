@@ -2,7 +2,10 @@
 #include <cstdint>
 #include "Bus.h"
 #include <functional>
-
+#include <map>        // for std::map
+#include <string>     // for std::string
+#include <iomanip>    // optional if you're using stringstreams for hex formatting
+#include <sstream>    // optional, only if you switch from manual hex formatting
 
 class cpu {
 public:
@@ -15,12 +18,11 @@ public:
     //Struct to hold opcode data
     struct Opcode {
         std::function<void()> handler;
-        uint8_t cycles;
         uint8_t bytes;
+        uint8_t cycles;
 
     };
     Opcode opcodeTable[256];
-    uint8_t totalCycles = 0;
     uint32_t clockCycles = 0;
 
 
@@ -30,12 +32,13 @@ public:
     void nmi();
     bool complete();
 
+
     void ConnectBus(Bus* bus);
     // Registers
-    uint8_t A, X, Y, S;
+    uint8_t A =0, X = 0, Y = 0, S = 0;
     uint8_t P = 0;
-    uint16_t PC;
-    int cycles;
+    uint16_t PC = 0;
+    int cycles = 0;
 
 
     // Flag setters
@@ -67,7 +70,8 @@ public:
     bool GetOverflow();
     bool GetNegative();
     bool GetUnused();
-
+    void Push(uint8_t value);
+    uint8_t Pop();
 private:
 
     void InitopcodeTable();
@@ -137,7 +141,8 @@ private:
     void TXS();
     void JMPIndirect();
     
-    
+    void NOP_Illegal();
+
 
 
     //adressing modes
@@ -152,15 +157,15 @@ private:
     uint8_t FetchIndirectX();
     uint8_t FetchIndirectY();
     //Store
-    uint16_t StoreZeroPage();
-    uint16_t StoreZeroPageX();
-    uint16_t StoreZeroPageY();
+    uint16_t GetZeroPageAddress();
+    uint16_t GetZeroPageAddressX();
+    uint16_t GetZeroPageAddressY();
 
-    uint16_t StoreAbsolute();
-    uint16_t StoreAbsoluteX();
-    uint16_t StoreAbsoluteY();
-    uint16_t StoreIndirectX();
-    uint16_t StoreIndirectY();
+    uint16_t GetAddressAbsolute();
+    uint16_t GetAddressAbsoluteX();
+    uint16_t GetAddressAbsoluteY();
+    uint16_t GetIndirectAddressX();
+    uint16_t GetIndirectAddressY();
 
 
 

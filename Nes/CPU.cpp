@@ -1,4 +1,6 @@
 ﻿#include <iostream>
+#include <fstream>
+#include <iomanip>
 #include "cpu.h"
 #include "Bus.h"
 #include "cartridge.h"
@@ -17,7 +19,7 @@ void cpu::ConnectBus(Bus* b) {
 //Adressing modes
 
 uint8_t cpu::FetchImmediate() {
-	return bus->Read(PC+ 1);
+	return (bus->Read(PC+ 1));
 
 }
 
@@ -44,11 +46,19 @@ uint8_t cpu::FetchAbsolute() {
 	return bus->Read(address);
 }
 uint8_t cpu::FetchAbsoluteX() {
+
 	uint16_t base = (bus->Read(PC + 1) | (bus->Read(PC + 2) << 8));
 	uint16_t address = base + X;
+	uint8_t value = bus->Read(address);
+
+	std::cout << std::hex << "PC=$" << PC
+		<< " X=$" << (int)X
+		<< " LDA $" << base << ",X @ $" << address
+		<< " = $" << (int)value << "\n";
 	if ((base & 0xFF00) != (address & 0xFF00)) {
 		cycles++;
 	}
+
 	return bus->Read(address);
 }
 uint8_t cpu::FetchAbsoluteY() {
@@ -78,35 +88,40 @@ uint8_t cpu::FetchIndirectY() {
 	return bus->Read(address);
 }
 
-uint16_t cpu::StoreZeroPage() {
+uint16_t cpu::GetZeroPageAddress() {
 	return bus->Read(PC + 1);
 }
 
-uint16_t cpu::StoreZeroPageX() {
+uint16_t cpu::GetZeroPageAddressX() {
 	return (bus->Read(PC + 1) + X) & 0xFF;
 }
-uint16_t cpu::StoreZeroPageY() {
+uint16_t cpu::GetZeroPageAddressY() {
 	return (bus->Read(PC + 1) + Y) & 0xFF;
 }
-uint16_t cpu::StoreAbsolute() {
-	return (bus->Read(PC + 1) | (bus->Read(PC + 2) << 8));
+uint16_t cpu::GetAddressAbsolute() {
+	uint8_t lo = bus->Read(PC + 1);
+	uint8_t hi = bus->Read(PC + 2);
+	uint16_t addr = (hi << 8) | lo;
 
+
+
+	return addr;
 }
-uint16_t cpu::StoreAbsoluteX() {
+uint16_t cpu::GetAddressAbsoluteX() {
 	return ((bus->Read(PC + 1) | (bus->Read(PC + 2) << 8)) +X);
 
 }
-uint16_t cpu::StoreAbsoluteY() {
+uint16_t cpu::GetAddressAbsoluteY() {
 	return ((bus->Read(PC + 1) | (bus->Read(PC + 2) << 8)) + Y);
 
 }
-uint16_t cpu::StoreIndirectX() {
+uint16_t cpu::GetIndirectAddressX() {
 	uint8_t index = (bus->Read(PC + 1) + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
 	uint16_t addr = (bus->Read((index + 1) & 0xFF) << 8) | bus->Read(index);
 	return addr;
 
 }
-uint16_t cpu::StoreIndirectY() {
+uint16_t cpu::GetIndirectAddressY() {
 	uint8_t index = (bus->Read(PC + 1) + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
 	uint16_t addr = (bus->Read((index + 1) & 0xFF) << 8) | bus->Read(index);
 	return addr;
@@ -117,6 +132,7 @@ uint16_t cpu::StoreIndirectY() {
 
 void cpu::LDA(uint8_t value) {
 	//Opcode then operand 2 bytes and 2 cycles
+
 	A = value;
 	CheckByte(A);
 }
@@ -128,7 +144,6 @@ void cpu::STA(uint16_t value) {
 
 	bus->Write(value,A);// store A in it
 
-
 }
 
 
@@ -136,7 +151,6 @@ void cpu::STX(uint16_t value) {
 
 	//Store X into memory location
 	bus->Write(value,X);
-
 }
 
 
@@ -144,7 +158,6 @@ void cpu::STY(uint16_t value) {
 
 	//Store Y into memory location
 	bus->Write(value,Y);
-
 }
 
 //LDX
@@ -152,7 +165,6 @@ void cpu::LDX(uint8_t value) {
 	//Opcode then operand 2 bytes and 2 cycles
 	X = value;
 	CheckByte(X);
-
 }
 
 
@@ -168,29 +180,28 @@ void cpu::PHA() {
 
 	bus->Write(0x0100 + S, A);
 	S--;
-	PC += 1;
-	cycles += 3;
 
 }
 void cpu::PLA() {
+	S++;
+
 
 	A = bus->Read(0x0100 + S);
-	S++;
 	CheckByte(A);
-	PC += 1;
-	cycles += 4;
+
 
 }
 void cpu::PHP() {
-	bus->Write(0x0100 + S,  P);
+	bus->Write(0x0100 + S,  P| 0b00110000);
 	S--;
 
 
 }
 void cpu::PLP() {
-	P = bus->Read(0x0100 + S);
 	S++;
 
+	uint8_t value = bus->Read(0x0100 + S);
+	P = (value & 0b11001111) | 0b00100000;
 }
 
 void cpu::TAX() {
@@ -267,43 +278,54 @@ void cpu::JSR(uint16_t addr) {
 
 }
 void cpu::RTS() {
-	//Do not understand this one very well
 
 	S++;
 	uint8_t low = bus->Read(0x0100 + S);
 	S++;
 	uint8_t high = bus->Read(0x0100 + S);
-	S++;
-	PC = high << 8 | low;
+	PC = (high << 8 | low ) + 1;
 
 
 }
 void cpu::BRK() {
-	//Do not understand this one very well
 
-	PC++;
-	bus->Write((0x0100 +S) , (PC >>8));
-	S--;
-	bus->Write((0x0100 + S), (PC & 0xFF));
-	S--;
 
-	bus->Write((0x0100 + S),( P | 0x30));
-	S--;
-	SetInterrupt(); //Flag
-		
-	PC = (bus->Read(0xFFFF) << 8 ) | bus->Read(0xFFFE);
-	cycles += 7;
+	PC++; // BRK skips next byte (acts like a 2-byte instruction)
+
+	// Compute values to push
+	uint8_t pch = (PC >> 8) & 0xFF;
+	uint8_t pcl = PC & 0xFF;
+	uint8_t status = P | 0x30; // Set B and U flags
+
+
+
+	// Push PC and status to stack
+	bus->Write(0x0100 + S--, pch);  // PCH
+	bus->Write(0x0100 + S--, pcl);  // PCL
+	bus->Write(0x0100 + S--, status); // Status byte
+
+	// Set I flag
+	SetInterrupt();
+
+	// Read IRQ vector
+	uint8_t low = bus->Read(0xFFFE);
+	uint8_t high = bus->Read(0xFFFF);
+	PC = (high << 8) | low;
+
+
 }
 void cpu::RTI() {
-	// Set P to current stack value
+
+	S++;
 	P = bus->Read(0x0100 + S);
-	S++; // Push
-	uint8_t low = bus->Read((0x0100 + S) ); // get low byte
+	ClearBreak();
+	SetUnused();
+
 	S++;
-	uint8_t high = bus->Read(0x0100 + S ); // get high byte
+	uint8_t pcl = bus->Read(0x0100 + S);
 	S++;
-	PC = high << 8 | low; //Bit shift to get 16bit
-	cycles += 6;
+	uint8_t pch = bus->Read(0x0100 + S);
+	PC = (pch << 8) | pcl;
 
 }
 void cpu::ADC(uint8_t value) {
@@ -666,6 +688,7 @@ void cpu::INC(uint16_t addr) {
 
 }
 void cpu::JMP(uint16_t addr) {
+
 	PC = addr;
 
 }
@@ -754,15 +777,14 @@ void cpu::ROR_A() {
 void cpu::ROR(uint16_t addr) {
 	uint8_t value = bus->Read(addr);
 	bool oldCarry = GetCarry();
-	if (value & 0b00000001) SetCarry(); else ClearCarry();
+	if (value & 0x01) SetCarry(); else ClearCarry();
 	value >>= 1;
-	if (oldCarry) {
-		value |= 0b10000000;
-	};
-
+	if (oldCarry) value |= 0x80;
 	CheckByte(value);
 	bus->Write(addr, value);
+
 }
+
 void cpu::SEC() {
 	SetCarry();
 }
@@ -774,6 +796,7 @@ void cpu::SEI() {
 }
 void cpu::TSX() {
 	X = S;
+	CheckByte(X);
 }
 void cpu::TXS() {
 	S = X;
@@ -786,8 +809,16 @@ void cpu::CheckByte(uint8_t reg) {
 	else { ClearNegative(); }
 
 }
+void cpu::NOP_Illegal() {
+
+}
 
 void cpu::InitopcodeTable() {
+	for (int i = 0; i < 256; ++i) {
+		if (!opcodeTable[i].handler) {
+			opcodeTable[i] = { [this]() { NOP_Illegal(); }, 2, 3 };
+		}
+	}
 
 	//LDA
 // LDA – Load Accumulator
@@ -801,23 +832,23 @@ void cpu::InitopcodeTable() {
 	opcodeTable[0xB1] = { [this]() { LDA(FetchIndirectY()); }, 2, 5 };
 
 	// STA – Store Accumulator
-	opcodeTable[0x85] = { [this]() { STA(StoreZeroPage()); }, 2, 3 };
-	opcodeTable[0x95] = { [this]() { STA(StoreZeroPageX()); }, 2, 4 };
-	opcodeTable[0x8D] = { [this]() { STA(StoreAbsolute()); }, 3, 4 };
-	opcodeTable[0x9D] = { [this]() { STA(StoreAbsoluteX()); }, 3, 5 };
-	opcodeTable[0x99] = { [this]() { STA(StoreAbsoluteY()); }, 3, 5 };
-	opcodeTable[0x81] = { [this]() { STA(StoreIndirectX()); }, 2, 6 };
-	opcodeTable[0x91] = { [this]() { STA(StoreIndirectY()); }, 2, 6 };
+	opcodeTable[0x85] = { [this]() { STA(GetZeroPageAddress()); }, 2, 3 };
+	opcodeTable[0x95] = { [this]() { STA(GetZeroPageAddressX()); }, 2, 4 };
+	opcodeTable[0x8D] = { [this]() { STA(GetAddressAbsolute()); }, 3, 4 };
+	opcodeTable[0x9D] = { [this]() { STA(GetAddressAbsoluteX()); }, 3, 5 };
+	opcodeTable[0x99] = { [this]() { STA(GetAddressAbsoluteY()); }, 3, 5 };
+	opcodeTable[0x81] = { [this]() { STA(GetIndirectAddressX()); }, 2, 6 };
+	opcodeTable[0x91] = { [this]() { STA(GetIndirectAddressY()); }, 2, 6 };
 
 	// STX – Store X Register
-	opcodeTable[0x86] = { [this]() { STX(StoreZeroPage()); }, 2, 3 };
-	opcodeTable[0x96] = { [this]() { STX(StoreZeroPageY()); }, 2, 4 };
-	opcodeTable[0x8E] = { [this]() { STX(StoreAbsolute()); }, 3, 4 };
+	opcodeTable[0x86] = { [this]() { STX(GetZeroPageAddress()); }, 2, 3 };
+	opcodeTable[0x96] = { [this]() { STX(GetZeroPageAddressY()); }, 2, 4 };
+	opcodeTable[0x8E] = { [this]() { STX(GetAddressAbsolute()); }, 3, 4 };
 
 	// STY – Store Y Register
-	opcodeTable[0x84] = { [this]() { STY(StoreZeroPage()); }, 2, 3 };
-	opcodeTable[0x94] = { [this]() { STY(StoreZeroPageX()); }, 2, 4 };
-	opcodeTable[0x8C] = { [this]() { STY(StoreAbsolute()); }, 3, 4 };
+	opcodeTable[0x84] = { [this]() { STY(GetZeroPageAddress()); }, 2, 3 };
+	opcodeTable[0x94] = { [this]() { STY(GetZeroPageAddressX()); }, 2, 4 };
+	opcodeTable[0x8C] = { [this]() { STY(GetAddressAbsolute()); }, 3, 4 };
 
 	// LDX – Load X Register
 	opcodeTable[0xA2] = { [this]() { LDX(FetchImmediate()); }, 2, 2 };
@@ -845,25 +876,25 @@ void cpu::InitopcodeTable() {
 	opcodeTable[0x48] = { [this]() { PHA(); }, 1, 3 };
 	opcodeTable[0x68] = { [this]() { PLA(); }, 1, 4 };
 	opcodeTable[0x08] = { [this]() { PHP(); }, 1, 3 };
-	opcodeTable[0x28] = { [this]() { PLP(); }, 1, 3 };
+	opcodeTable[0x28] = { [this]() { PLP(); }, 1, 4 };
 
 	// Control Flow
-	opcodeTable[0x20] = { [this]() { JSR(FetchAbsolute()); }, 3, 6 };
-	opcodeTable[0x60] = { [this]() { RTS(); }, 1, 6 };
-	opcodeTable[0x00] = { [this]() { BRK(); }, 1, 7 };
-	opcodeTable[0x40] = { [this]() { RTI(); }, 1, 6 };
-	opcodeTable[0x4C] = { [this]() { JMP(FetchAbsolute()); }, 3, 3 };
-	opcodeTable[0x6C] = { [this]() { JMPIndirect(); }, 3, 5 };
+	opcodeTable[0x20] = { [this]() { JSR(GetAddressAbsolute()); }, 0, 6 };
+	opcodeTable[0x60] = { [this]() { RTS(); }, 0, 6 };
+	opcodeTable[0x00] = { [this]() { BRK(); }, 0, 7 };
+	opcodeTable[0x40] = { [this]() { RTI(); }, 0, 6 };
+	opcodeTable[0x4C] = { [this]() { JMP(GetAddressAbsolute()); }, 0, 3 };
+	opcodeTable[0x6C] = { [this]() { JMPIndirect(); }, 0, 5 };
 
 	// Branches
-	opcodeTable[0x90] = { [this]() { BCC(); }, 2, 2 };
-	opcodeTable[0xB0] = { [this]() { BCS(); }, 2, 2 };
-	opcodeTable[0xF0] = { [this]() { BEQ(); }, 2, 2 };
-	opcodeTable[0x30] = { [this]() { BMI(); }, 2, 2 };
-	opcodeTable[0xD0] = { [this]() { BNE(); }, 2, 2 };
-	opcodeTable[0x10] = { [this]() { BPL(); }, 2, 2 };
-	opcodeTable[0x50] = { [this]() { BVC(); }, 2, 2 };
-	opcodeTable[0x70] = { [this]() { BVS(); }, 2, 2 };
+	opcodeTable[0x90] = { [this]() { BCC(); }, 0, 2 };
+	opcodeTable[0xB0] = { [this]() { BCS(); }, 0, 2 };
+	opcodeTable[0xF0] = { [this]() { BEQ(); }, 0, 2 };
+	opcodeTable[0x30] = { [this]() { BMI(); }, 0, 2 };
+	opcodeTable[0xD0] = { [this]() { BNE(); }, 0, 2 };
+	opcodeTable[0x10] = { [this]() { BPL(); }, 0, 2 };
+	opcodeTable[0x50] = { [this]() { BVC(); }, 0, 2 };
+	opcodeTable[0x70] = { [this]() { BVS(); }, 0, 2 };
 
 	// Set Flags
 	opcodeTable[0x38] = { [this]() { SEC(); }, 1, 2 };
@@ -945,28 +976,37 @@ void cpu::InitopcodeTable() {
 	opcodeTable[0xCA] = { [this]() { DEX(); }, 1, 2 };
 	opcodeTable[0xC8] = { [this]() { INY(); }, 1, 2 };
 	opcodeTable[0x88] = { [this]() { DEY(); }, 1, 2 };
-	opcodeTable[0xE6] = { [this]() { INC(FetchZeroPage()); }, 2, 5 };
-	opcodeTable[0xF6] = { [this]() { INC(FetchZeroPageX()); }, 2, 6 };
-	opcodeTable[0xEE] = { [this]() { INC(FetchAbsolute()); }, 3, 6 };
-	opcodeTable[0xFE] = { [this]() { INC(FetchAbsoluteX()); }, 3, 7 };
-	opcodeTable[0xC6] = { [this]() { DEC(FetchZeroPage()); }, 2, 5 };
-	opcodeTable[0xD6] = { [this]() { DEC(FetchZeroPageX()); }, 2, 6 };
-	opcodeTable[0xCE] = { [this]() { DEC(FetchAbsolute()); }, 3, 6 };
-	opcodeTable[0xDE] = { [this]() { DEC(FetchAbsoluteX()); }, 3, 7 };
+	opcodeTable[0xE6] = { [this]() { INC(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0xF6] = { [this]() { INC(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0xEE] = { [this]() { INC(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0xFE] = { [this]() { INC(GetAddressAbsoluteX()); }, 3, 7 };
+	opcodeTable[0xC6] = { [this]() { DEC(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0xD6] = { [this]() { DEC(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0xCE] = { [this]() { DEC(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0xDE] = { [this]() { DEC(GetAddressAbsoluteX()); }, 3, 7 };
 
 	// Shifts & Rotates
 	opcodeTable[0x0A] = { [this]() { ASL_A(); }, 1, 2 };
-	opcodeTable[0x06] = { [this]() { ASL(StoreZeroPage()); }, 2, 5 };
-	opcodeTable[0x16] = { [this]() { ASL(StoreZeroPageX()); }, 2, 6 };
-	opcodeTable[0x0E] = { [this]() { ASL(StoreAbsolute()); }, 3, 6 };
-	opcodeTable[0x1E] = { [this]() { ASL(StoreAbsoluteX()); }, 3, 7 };
+	opcodeTable[0x06] = { [this]() { ASL(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0x16] = { [this]() { ASL(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0x0E] = { [this]() { ASL(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0x1E] = { [this]() { ASL(GetAddressAbsoluteX()); }, 3, 7 };
 	opcodeTable[0x4A] = { [this]() { LSR_A(); }, 1, 2 };
-	opcodeTable[0x46] = { [this]() { LSR(StoreZeroPage()); }, 2, 5 };
-	opcodeTable[0x56] = { [this]() { LSR(StoreZeroPageX()); }, 2, 6 };
-	opcodeTable[0x4E] = { [this]() { LSR(StoreAbsolute()); }, 3, 6 };
-	opcodeTable[0x5E] = { [this]() { LSR(StoreAbsoluteX()); }, 3, 7 };
+	opcodeTable[0x46] = { [this]() { LSR(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0x56] = { [this]() { LSR(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0x4E] = { [this]() { LSR(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0x5E] = { [this]() { LSR(GetAddressAbsoluteX()); }, 3, 7 };
 	opcodeTable[0x2A] = { [this]() { ROL_A(); }, 1, 2 };
-	opcodeTable[0x26] = { [this]() { ROL(StoreZeroPage()); }, 2, 5 };
+	opcodeTable[0x26] = { [this]() { ROL(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0x36] = { [this]() { ROL(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0x2E] = { [this]() { ROL(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0x3E] = { [this]() { ROL(GetAddressAbsoluteX()); }, 3, 7 };
+	opcodeTable[0x6A] = { [this]() { ROR_A(); }, 1, 2 };
+	opcodeTable[0x66] = { [this]() { ROR(GetZeroPageAddress()); }, 2, 5 };
+	opcodeTable[0x76] = { [this]() { ROR(GetZeroPageAddressX()); }, 2, 6 };
+	opcodeTable[0x6E] = { [this]() { ROR(GetAddressAbsolute()); }, 3, 6 };
+	opcodeTable[0x7E] = { [this]() { ROR(GetAddressAbsoluteX()); }, 3, 7 };
+	opcodeTable[0xEA] = { [this]() { NOP(); },1,2 };
 
 
 }
@@ -1047,28 +1087,89 @@ void cpu::Reset() {
 	//Interrupt set to 1, AXY set to 0, FFFC = 00 and FFFD = x80.S starts at xFD
 	//bus->Write(0xFFFC,0x00);
 	//bus->Write(0xFFFD, 0x80);
-	PC = bus->Read(0xFFFC)  | bus->Read(0xFFFD) <<8;
+	uint8_t lo = bus->Read(0xFFFC);
+	uint8_t hi = bus->Read(0xFFFD);
+	PC = (hi << 8) | lo;
 	A = 0;
 	Y = 0;
 	X = 0;
 	S = 0xFD;
 	P = 0b00100100;
+	std::printf("Read reset vector: $%04X (lo=$%02X hi=$%02X)\n", PC, lo, hi);
+	std::printf("A=$%02X X=$%02X Y=$%02X S=$%02X P=$%02X\n", A, X, Y, S, P);
 	cycles = 7;
 }
-void cpu::clock();
-void cpu::irq();
-void cpu::nmi();
+void cpu::clock() {
+	if (cycles == 0) {
+		uint8_t opcode = bus->Read(PC);
+		//std::cout << "PC: $" << std::hex << std::uppercase << (int)PC
+		//	<< "  OPCODE: $" << std::setw(2) << std::setfill('0') << (int)opcode << std::endl;
+		//std::cout << "PC=$" << std::setw(4) << PC << " OPCODE=$" << std::setw(2) << (int)opcode << "\n";
 
 
+		const auto& op = opcodeTable[opcode];
 
+		cycles = op.cycles;
 
-#include <fstream>
-#include <iomanip>
-#include <sstream>
+		op.handler(); 
+		PC += op.bytes;
 
+	}
+	clockCycles++;
+	cycles--;
+}
+void cpu::irq() {
+	if (!GetInterrupt()) {
+		bus->Write(0x0100 + S,  (PC >> 8) & 0x00FF);
+		S--;
+		bus->Write(0x0100 + S, PC & 0x00FF);
+		S--;
+		ClearBreak();
+		SetUnused();
+		SetInterrupt();
+		bus->Write(0x0100 + S, P);
+		S--;
+		uint16_t lo = bus->Read(0xFFFA);      // e.g. returns 0x34
+		uint16_t hi = bus->Read(0xFFFB);      // e.g. returns 0x12
+		PC = (hi << 8) | lo;                  // PC = 0x1234
+		PC = (hi << 8) | lo;
+		cycles = 7;
+	}
+}
+	
+void cpu::nmi() {
+	bus->Write(0x0100 + S, (PC >> 8) & 0x00FF);
+	S--;
+	bus->Write(0x0100 + S, PC & 0x00FF);
+	S--;
+	ClearBreak();
+	SetUnused();
+	SetInterrupt();
+	bus->Write(0x0100 + S, P);
+	S--;
+	uint16_t lo = bus->Read(0xFFFA);      // e.g. returns 0x34
+	uint16_t hi = bus->Read(0xFFFB);      // e.g. returns 0x12
+	PC = (hi << 8) | lo;                  // PC = 0x1234
+	PC = (hi << 8) | lo;
+	cycles = 8;
+	}
 
+void cpu::Push(uint8_t value) {
+	bus->Write(0x0100 + S, value);
+	S--;
+}
+
+uint8_t cpu::Pop() {
+	S++;
+	return bus->Read(0x0100 + S);
+}
+
+bool cpu::complete() {
+    return cycles == 0;
+}
 
 int main() {
+
 	cpu cpu;
 	Bus bus;
 
@@ -1077,6 +1178,32 @@ int main() {
 		std::cerr << "Failed to load cartridge: nestest.nes\n";
 		return -1;
 	}
+	//std::cout << "=== CHECKPOINT: before cartridge assignment ===\n";
+
+	bus.cartridge = &cart;
+	cpu.ConnectBus(&bus);
+	std::cout << "Testing bus read...\n";
+	uint8_t test = bus.Read(0xFFFC);
+	std::cout << "bus.Read(0xFFFC) = $" << std::hex << (int)test << std::endl;
+	std::cout << "FFFC = $" << std::hex << (int)bus.Read(0xFFFC) << "\n";
+	std::cout << "FFFD = $" << std::hex << (int)bus.Read(0xFFFD) << "\n";
+	cpu.Reset();
+	cpu.PC = 0xC000;    // Override to match nestest expectations
+	uint8_t opcode = bus.Read(cpu.PC);
+	uint8_t op1 = bus.Read(cpu.PC + 1);
+	uint8_t op2 = bus.Read(cpu.PC + 2);
+
+	std::printf("Instruction at $%04X: $%02X $%02X $%02X\n", cpu.PC, opcode, op1, op2);
 
 
+	std::ofstream log("actual.log");
+	if (!log.is_open()) {
+		std::cerr << "Failed to open actual.log for writing.\n";
+		return -1;
+	}
+
+	int instructionCount = 0;
+
+	std::cout << "Generated actual.log\n";
+	return 0;
 }
