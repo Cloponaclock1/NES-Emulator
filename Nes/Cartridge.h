@@ -19,7 +19,7 @@ public:
     bool valid = true;
 
 private:
-   
+    int bankSize = 16384;
     std::vector<uint8_t> prgMemory;
     std::vector<uint8_t>chrMemory;
     bool iNESFormat = false;
@@ -33,39 +33,22 @@ private:
         //Header is 16 bytes
         std::array<uint8_t, 16> data;
     } header;
-    std::map<int, int> sizeCodes = {
-        {0,0},
-        {1,128},
-        {2,256},
-        {3,512},
-        {4,1024},
-        {5,2048},
-        {6,4096},
-        {7,8192},
-        {8,16384},
-        {9,32768},
-        {10,65536},
-        {11,131072},
-        {12,262144},
-        {13,524288},
-        {14,1048576}
-    };
 
 
     std::ifstream inputFile;
     bool iNes20();
-    int getMapper();
+    int getMapper10();
+    int getMapper20();
+
     int getPRGRomSize10();
     int getPRGRomSize20();
-    int getCHRRamSize();
-    int getPRGRamSize();
+
     int getCHRRomSize20();
     int getCHRRomSize10();
     int getCHRRamSizeVol();
     int getCHRRamSizeNonVol();
-
+    int getPRGRamSizeVol();
+    int getPRGRamSizeNonVol();
     bool INESFormat();
-
-
-
+    int getTiming();
 };
