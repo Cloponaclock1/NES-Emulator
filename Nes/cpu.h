@@ -1,19 +1,18 @@
 #pragma once
 #include <cstdint>
-#include "Bus.h"
 #include <functional>
 #include <map>        // for std::map
 #include <string>     // for std::string
 #include <iomanip>    // optional if you're using stringstreams for hex formatting
 #include <sstream>    // optional, only if you switch from manual hex formatting
+#include "Bus.h"
 
-class cpu {
+class CPU {
 public:
-    cpu();
-    Bus* bus = nullptr;
+    CPU();
 
     // Make gettr for opcode table varrables and registers, pc and cycles
-    typedef void (cpu::* Opcodehandler)();  // Optional for naming clarity
+    typedef void (CPU::* Opcodehandler)();  // Optional for naming clarity
 
     //Struct to hold opcode data
     struct Opcode {
@@ -168,6 +167,7 @@ private:
     uint16_t GetIndirectAddressY();
 
 
+    Bus* bus = nullptr;
 
 
 

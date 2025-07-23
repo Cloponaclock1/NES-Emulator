@@ -2,15 +2,13 @@
 #include <fstream>
 #include <iomanip>
 #include "cpu.h"
-#include "Bus.h"
-#include "cartridge.h"
 
-cpu::cpu() {
+CPU::CPU() {
 	InitopcodeTable();
 }
 
 
-void cpu::ConnectBus(Bus* b) {
+void CPU::ConnectBus(Bus* b) {
 	bus = b;
 	}
 
@@ -18,38 +16,38 @@ void cpu::ConnectBus(Bus* b) {
 
 //Adressing modes
 
-uint8_t cpu::FetchImmediate() {
-	return (bus->Read(PC+ 1));
+uint8_t CPU::FetchImmediate() {
+	return (bus->cpuRead(PC+ 1));
 
 }
 
-uint8_t cpu::FetchZeroPage() {
-	uint8_t addr = bus->Read(PC + 1);
-	return bus->Read(addr);
+uint8_t CPU::FetchZeroPage() {
+	uint8_t addr = bus->cpuRead(PC + 1);
+	return bus->cpuRead(addr);
 }
 
-uint8_t cpu::FetchZeroPageX() {
-	uint8_t base = bus->Read(PC + 1);//get operand
+uint8_t CPU::FetchZeroPageX() {
+	uint8_t base = bus->cpuRead(PC + 1);//get operand
 	uint8_t address = (base + X) & 0xFF; // get nex address +X
-	return bus->Read(address); // Store in A
+	return bus->cpuRead(address); // Store in A
 
 }
 
-uint8_t cpu::FetchZeroPageY() {
-	uint8_t base = bus->Read(PC + 1);//get operand
+uint8_t CPU::FetchZeroPageY() {
+	uint8_t base = bus->cpuRead(PC + 1);//get operand
 	uint8_t address = (base + Y) & 0xFF; // get nex address +X
-	return bus->Read(address); // Store in A
+	return bus->cpuRead(address); // Store in A
 
 }
-uint8_t cpu::FetchAbsolute() {
-	uint16_t address = bus->Read(PC + 1) | (bus->Read(PC + 2) << 8);
-	return bus->Read(address);
+uint8_t CPU::FetchAbsolute() {
+	uint16_t address = bus->cpuRead(PC + 1) | (bus->cpuRead(PC + 2) << 8);
+	return bus->cpuRead(address);
 }
-uint8_t cpu::FetchAbsoluteX() {
+uint8_t CPU::FetchAbsoluteX() {
 
-	uint16_t base = (bus->Read(PC + 1) | (bus->Read(PC + 2) << 8));
+	uint16_t base = (bus->cpuRead(PC + 1) | (bus->cpuRead(PC + 2) << 8));
 	uint16_t address = base + X;
-	uint8_t value = bus->Read(address);
+	uint8_t value = bus->cpuRead(address);
 
 	std::cout << std::hex << "PC=$" << PC
 		<< " X=$" << (int)X
@@ -59,78 +57,78 @@ uint8_t cpu::FetchAbsoluteX() {
 		cycles++;
 	}
 
-	return bus->Read(address);
+	return bus->cpuRead(address);
 }
-uint8_t cpu::FetchAbsoluteY() {
-	uint16_t base = (bus->Read(PC + 1) | (bus->Read(PC + 2) << 8));
+uint8_t CPU::FetchAbsoluteY() {
+	uint16_t base = (bus->cpuRead(PC + 1) | (bus->cpuRead(PC + 2) << 8));
 	uint16_t address = base + Y;
 	if ((base & 0xFF00) != (address & 0xFF00)) {
 		cycles++;
 	}
-	return bus->Read(address);
+	return bus->cpuRead(address);
 }
-uint8_t cpu::FetchIndirectX() {
-	uint8_t zp_addr = (bus->Read(PC + 1) + X) & 0xFF; // wrap around
-	uint8_t low = bus->Read(zp_addr);
-	uint8_t high = bus->Read((zp_addr + 1) & 0xFF); // wrap again
+uint8_t CPU::FetchIndirectX() {
+	uint8_t zp_addr = (bus->cpuRead(PC + 1) + X) & 0xFF; // wrap around
+	uint8_t low = bus->cpuRead(zp_addr);
+	uint8_t high = bus->cpuRead((zp_addr + 1) & 0xFF); // wrap again
 	uint16_t address = (high << 8) | low;
-	return bus->Read(address);
+	return bus->cpuRead(address);
 }
-uint8_t cpu::FetchIndirectY() {
-	uint8_t zptr = bus->Read(PC + 1);
+uint8_t CPU::FetchIndirectY() {
+	uint8_t zptr = bus->cpuRead(PC + 1);
 
-	uint16_t base = bus->Read(zptr) | (bus->Read((zptr + 1) & 0xFF) << 8);
+	uint16_t base = bus->cpuRead(zptr) | (bus->cpuRead((zptr + 1) & 0xFF) << 8);
 
 	uint16_t address = base + Y;
 	if ((base & 0xFF00) != (address & 0xFF00)) {
 		cycles++;
 	}
-	return bus->Read(address);
+	return bus->cpuRead(address);
 }
 
-uint16_t cpu::GetZeroPageAddress() {
-	return bus->Read(PC + 1);
+uint16_t CPU::GetZeroPageAddress() {
+	return bus->cpuRead(PC + 1);
 }
 
-uint16_t cpu::GetZeroPageAddressX() {
-	return (bus->Read(PC + 1) + X) & 0xFF;
+uint16_t CPU::GetZeroPageAddressX() {
+	return (bus->cpuRead(PC + 1) + X) & 0xFF;
 }
-uint16_t cpu::GetZeroPageAddressY() {
-	return (bus->Read(PC + 1) + Y) & 0xFF;
+uint16_t CPU::GetZeroPageAddressY() {
+	return (bus->cpuRead(PC + 1) + Y) & 0xFF;
 }
-uint16_t cpu::GetAddressAbsolute() {
-	uint8_t lo = bus->Read(PC + 1);
-	uint8_t hi = bus->Read(PC + 2);
+uint16_t CPU::GetAddressAbsolute() {
+	uint8_t lo = bus->cpuRead(PC + 1);
+	uint8_t hi = bus->cpuRead(PC + 2);
 	uint16_t addr = (hi << 8) | lo;
 
 
 
 	return addr;
 }
-uint16_t cpu::GetAddressAbsoluteX() {
-	return ((bus->Read(PC + 1) | (bus->Read(PC + 2) << 8)) +X);
+uint16_t CPU::GetAddressAbsoluteX() {
+	return ((bus->cpuRead(PC + 1) | (bus->cpuRead(PC + 2) << 8)) +X);
 
 }
-uint16_t cpu::GetAddressAbsoluteY() {
-	return ((bus->Read(PC + 1) | (bus->Read(PC + 2) << 8)) + Y);
+uint16_t CPU::GetAddressAbsoluteY() {
+	return ((bus->cpuRead(PC + 1) | (bus->cpuRead(PC + 2) << 8)) + Y);
 
 }
-uint16_t cpu::GetIndirectAddressX() {
-	uint8_t index = (bus->Read(PC + 1) + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
-	uint16_t addr = (bus->Read((index + 1) & 0xFF) << 8) | bus->Read(index);
+uint16_t CPU::GetIndirectAddressX() {
+	uint8_t index = (bus->cpuRead(PC + 1) + X) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
+	uint16_t addr = (bus->cpuRead((index + 1) & 0xFF) << 8) | bus->cpuRead(index);
 	return addr;
 
 }
-uint16_t cpu::GetIndirectAddressY() {
-	uint8_t index = (bus->Read(PC + 1) + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
-	uint16_t addr = (bus->Read((index + 1) & 0xFF) << 8) | bus->Read(index);
+uint16_t CPU::GetIndirectAddressY() {
+	uint8_t index = (bus->cpuRead(PC + 1) + Y) & 0xFF; // 0xFF to wrap aroufnt the 256kb memory
+	uint16_t addr = (bus->cpuRead((index + 1) & 0xFF) << 8) | bus->cpuRead(index);
 	return addr;
 
 }
 //LDA
 //LDA cycle cost 
 
-void cpu::LDA(uint8_t value) {
+void CPU::LDA(uint8_t value) {
 	//Opcode then operand 2 bytes and 2 cycles
 
 	A = value;
@@ -139,36 +137,36 @@ void cpu::LDA(uint8_t value) {
 
 
 //STA
-void cpu::STA(uint16_t value) {
+void CPU::STA(uint16_t value) {
 	//opcode then a memory location to store A
 
-	bus->Write(value,A);// store A in it
+	bus->cpuWrite(value,A);// store A in it
 
 }
 
 
-void cpu::STX(uint16_t value) {
+void CPU::STX(uint16_t value) {
 
 	//Store X into memory location
-	bus->Write(value,X);
+	bus->cpuWrite(value,X);
 }
 
 
-void cpu::STY(uint16_t value) {
+void CPU::STY(uint16_t value) {
 
 	//Store Y into memory location
-	bus->Write(value,Y);
+	bus->cpuWrite(value,Y);
 }
 
 //LDX
-void cpu::LDX(uint8_t value) {
+void CPU::LDX(uint8_t value) {
 	//Opcode then operand 2 bytes and 2 cycles
 	X = value;
 	CheckByte(X);
 }
 
 
-void cpu::LDY(uint8_t value) {
+void CPU::LDY(uint8_t value) {
 	//Opcode then operand 2 bytes and 2 cycles
 	Y = value;
 	CheckByte(Y);
@@ -176,42 +174,42 @@ void cpu::LDY(uint8_t value) {
 
 }
 
-void cpu::PHA() {
+void CPU::PHA() {
 
-	bus->Write(0x0100 + S, A);
+	bus->cpuWrite(0x0100 + S, A);
 	S--;
 
 }
-void cpu::PLA() {
+void CPU::PLA() {
 	S++;
 
 
-	A = bus->Read(0x0100 + S);
+	A = bus->cpuRead(0x0100 + S);
 	CheckByte(A);
 
 
 }
-void cpu::PHP() {
-	bus->Write(0x0100 + S,  P| 0b00110000);
+void CPU::PHP() {
+	bus->cpuWrite(0x0100 + S,  P| 0b00110000);
 	S--;
 
 
 }
-void cpu::PLP() {
+void CPU::PLP() {
 	S++;
 
-	uint8_t value = bus->Read(0x0100 + S);
+	uint8_t value = bus->cpuRead(0x0100 + S);
 	P = (value & 0b11001111) | 0b00100000;
 }
 
-void cpu::TAX() {
+void CPU::TAX() {
 	// Dont need the memory access but itll make the loop simplier
 	X = A;
 	CheckByte(X);
 
 }
 
-void cpu::TAY() {
+void CPU::TAY() {
 	// Dont need the memory access but itll make the loop simplier
 
 	Y = A;
@@ -219,7 +217,7 @@ void cpu::TAY() {
 
 }
 
-void cpu::TXA() {
+void CPU::TXA() {
 	// Dont need the memory access but itll make the loop simplier
 
 	A = X;
@@ -227,21 +225,21 @@ void cpu::TXA() {
 
 }
 
-void cpu::TYA() {
+void CPU::TYA() {
 	// Dont need the memory access but itll make the loop simplier
 
 	A = Y;
 	CheckByte(A);
 
 }
-void cpu::INX() {
+void CPU::INX() {
 	// Dont need the memory access but itll make the loop simplier
 
 	X++;
 	CheckByte(X);
 
 }
-void cpu::INY() {
+void CPU::INY() {
 	// Dont need the memory access but itll make the loop simplier
 
 	Y++;
@@ -249,45 +247,45 @@ void cpu::INY() {
 
 }
 
-void cpu::DEX() {
+void CPU::DEX() {
 	// Dont need the memory access but itll make the loop simplier
 
 	X--;
 	CheckByte(X);
 
 }
-void cpu::DEY() {
+void CPU::DEY() {
 	// Dont need the memory access but itll make the loop simplier
 
 	Y--;
 	CheckByte(Y);
 
 }
-void cpu::JSR(uint16_t addr) {
+void CPU::JSR(uint16_t addr) {
 
     // Correct return address: PC of the instruction AFTER JSR, minus 1
     uint16_t return_address = PC + 2;
 
-    bus->Write(0x0100 + S, (return_address >> 8) & 0xFF); // high byte
+    bus->cpuWrite(0x0100 + S, (return_address >> 8) & 0xFF); // high byte
     S--;
-    bus->Write(0x0100 + S, return_address & 0xFF);        // low byte
+    bus->cpuWrite(0x0100 + S, return_address & 0xFF);        // low byte
     S--;
 
     PC = addr;
 
 
 }
-void cpu::RTS() {
+void CPU::RTS() {
 
 	S++;
-	uint8_t low = bus->Read(0x0100 + S);
+	uint8_t low = bus->cpuRead(0x0100 + S);
 	S++;
-	uint8_t high = bus->Read(0x0100 + S);
+	uint8_t high = bus->cpuRead(0x0100 + S);
 	PC = (high << 8 | low ) + 1;
 
 
 }
-void cpu::BRK() {
+void CPU::BRK() {
 
 
 	PC++; // BRK skips next byte (acts like a 2-byte instruction)
@@ -300,35 +298,35 @@ void cpu::BRK() {
 
 
 	// Push PC and status to stack
-	bus->Write(0x0100 + S--, pch);  // PCH
-	bus->Write(0x0100 + S--, pcl);  // PCL
-	bus->Write(0x0100 + S--, status); // Status byte
+	bus->cpuWrite(0x0100 + S--, pch);  // PCH
+	bus->cpuWrite(0x0100 + S--, pcl);  // PCL
+	bus->cpuWrite(0x0100 + S--, status); // Status byte
 
 	// Set I flag
 	SetInterrupt();
 
-	// Read IRQ vector
-	uint8_t low = bus->Read(0xFFFE);
-	uint8_t high = bus->Read(0xFFFF);
+	// cpuRead IRQ vector
+	uint8_t low = bus->cpuRead(0xFFFE);
+	uint8_t high = bus->cpuRead(0xFFFF);
 	PC = (high << 8) | low;
 
 
 }
-void cpu::RTI() {
+void CPU::RTI() {
 
 	S++;
-	P = bus->Read(0x0100 + S);
+	P = bus->cpuRead(0x0100 + S);
 	ClearBreak();
 	SetUnused();
 
 	S++;
-	uint8_t pcl = bus->Read(0x0100 + S);
+	uint8_t pcl = bus->cpuRead(0x0100 + S);
 	S++;
-	uint8_t pch = bus->Read(0x0100 + S);
+	uint8_t pch = bus->cpuRead(0x0100 + S);
 	PC = (pch << 8) | pcl;
 
 }
-void cpu::ADC(uint8_t value) {
+void CPU::ADC(uint8_t value) {
 	// Add contents of memory to A with the carry bit of P
 	uint8_t base = value;
 	uint16_t result = base + A + (P & 0b00000001);
@@ -354,7 +352,7 @@ void cpu::ADC(uint8_t value) {
 
 }
 
-void cpu::SBC(uint8_t value) {
+void CPU::SBC(uint8_t value) {
 	// Add contents of memory to A with the carry bit of P
 	uint16_t result = (~value) + A + (P & 0b00000001);
 
@@ -378,25 +376,25 @@ void cpu::SBC(uint8_t value) {
 	CheckByte(A);
 
 }
-void cpu::AND(uint8_t value) {
+void CPU::AND(uint8_t value) {
 	A = A & value;
 
 	CheckByte(A);
 }
-void cpu::ASL(uint16_t addr) {
+void CPU::ASL(uint16_t addr) {
 	//Check bit 7 before bit shift to see  value for carry
 
-	uint8_t value = bus->Read(addr);
+	uint8_t value = bus->cpuRead(addr);
 	if (value & 0b10000000) {
 		SetCarry();
 	}
 	else { ClearCarry(); }
-	bus->Write(addr, value <<= 1);
+	bus->cpuWrite(addr, value <<= 1);
 	CheckByte(value);
 
 
 }
-void cpu::ASL_A() {
+void CPU::ASL_A() {
 	//Check bit 7 before bit shift to see  value for carry
 	if (A & 0b10000000) {
 		SetCarry();
@@ -406,8 +404,8 @@ void cpu::ASL_A() {
 	CheckByte(A);
 }
 
-void cpu::BCC() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BCC() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 
 
@@ -429,8 +427,8 @@ void cpu::BCC() {
 	}
 
 }
-void cpu::BCS() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BCS() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 
 
@@ -452,8 +450,8 @@ void cpu::BCS() {
 	}
 
 }
-void cpu::BEQ() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BEQ() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (GetZero()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -473,7 +471,7 @@ void cpu::BEQ() {
 	}
 
 }
-void cpu::BIT(uint8_t value) {
+void CPU::BIT(uint8_t value) {
 	if ((A & value) ==0) {
 		SetZero();
 	}
@@ -491,8 +489,8 @@ void cpu::BIT(uint8_t value) {
 	}
 }
 
-void cpu::BMI() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BMI() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (GetNegative()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -513,8 +511,8 @@ void cpu::BMI() {
 
 
 }
-void cpu::BNE() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BNE() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (!GetZero()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -534,8 +532,8 @@ void cpu::BNE() {
 	}
 
 }
-void cpu::BPL() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BPL() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (!GetNegative()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -555,8 +553,8 @@ void cpu::BPL() {
 	}
 
 }
-void cpu::BVC() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BVC() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (!GetOverflow()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -576,8 +574,8 @@ void cpu::BVC() {
 	}
 
 }
-void cpu::BVS() {
-	int8_t offset = (int8_t)(bus->Read(PC + 1));
+void CPU::BVS() {
+	int8_t offset = (int8_t)(bus->cpuRead(PC + 1));
 
 	if (GetOverflow()) {
 		uint16_t nonOffestPC = PC + 2;
@@ -599,22 +597,22 @@ void cpu::BVS() {
 }
 
 
-void cpu::CLC() {
+void CPU::CLC() {
 	ClearCarry();
 }
 
-void cpu::CLD() {
+void CPU::CLD() {
 	ClearDecimal();
 }
 
-void cpu::CLI() {
+void CPU::CLI() {
 	ClearInterrupt();
 }
-void cpu::CLV() {
+void CPU::CLV() {
 	ClearOverflow();
 }
 
-void cpu::CMP(uint8_t value) {
+void CPU::CMP(uint8_t value) {
 	uint16_t temp = A - value;
 	if (A >= value) {
 		SetCarry();
@@ -631,7 +629,7 @@ void cpu::CMP(uint8_t value) {
 	else { ClearNegative(); }
 }
 
-void cpu::CPX(uint8_t value) {
+void CPU::CPX(uint8_t value) {
 	uint16_t temp = X - value;
 	if (X >= value) {
 		SetCarry();
@@ -648,7 +646,7 @@ void cpu::CPX(uint8_t value) {
 	else { ClearNegative(); }
 }
 
-void cpu::CPY(uint8_t value) {
+void CPU::CPY(uint8_t value) {
 	uint16_t temp = Y - value;
 	if (Y >= value) {
 		SetCarry();
@@ -665,51 +663,51 @@ void cpu::CPY(uint8_t value) {
 	else { ClearNegative(); }
 }
 
-void cpu::DEC(uint16_t addr) {
-	uint8_t value = bus->Read(addr);
+void CPU::DEC(uint16_t addr) {
+	uint8_t value = bus->cpuRead(addr);
 	value -= 1;
-	bus->Write(addr, value);
+	bus->cpuWrite(addr, value);
 	CheckByte(value);
 
 }
 
 
-void cpu::EOR(uint8_t value) {
+void CPU::EOR(uint8_t value) {
 	A = A ^ value;
 
 	CheckByte(A);
 }
 
-void cpu::INC(uint16_t addr) {
-	uint8_t value = bus->Read(addr);
+void CPU::INC(uint16_t addr) {
+	uint8_t value = bus->cpuRead(addr);
 	value += 1;
-	bus->Write(addr, value);
+	bus->cpuWrite(addr, value);
 	CheckByte(value);
 
 }
-void cpu::JMP(uint16_t addr) {
+void CPU::JMP(uint16_t addr) {
 
 	PC = addr;
 
 }
-void cpu::JMPIndirect() {
-	uint8_t low = bus->Read(PC + 1);
-	uint8_t high = bus->Read(PC + 2);
+void CPU::JMPIndirect() {
+	uint8_t low = bus->cpuRead(PC + 1);
+	uint8_t high = bus->cpuRead(PC + 2);
 	uint16_t pointer = (high << 8) | low;
 
-	uint8_t target_low = bus->Read(pointer);
+	uint8_t target_low = bus->cpuRead(pointer);
 	uint8_t target_high;
 
 	// Buggy wrap around
 	if ((pointer & 0x00FF) == 0x00FF)
-		target_high = bus->Read(pointer & 0xFF00);  // wrap around to start of page
+		target_high = bus->cpuRead(pointer & 0xFF00);  // wrap around to start of page
 	else
-		target_high = bus->Read(pointer + 1);
+		target_high = bus->cpuRead(pointer + 1);
 
 	PC = (target_high << 8) | target_low;
 
 }
-void cpu::LSR_A() {
+void CPU::LSR_A() {
 	if (A & 0b00000001) { SetCarry(); }
 	else
 	{
@@ -719,28 +717,28 @@ void cpu::LSR_A() {
 
 	CheckByte(A);
 }
-void cpu::LSR(uint16_t addr) {
-	uint8_t value= bus->Read(addr);
+void CPU::LSR(uint16_t addr) {
+	uint8_t value= bus->cpuRead(addr);
 	if (value & 0b00000001) { SetCarry(); }
 	else
 	{
 		ClearCarry();
 	}
 	value >>= 1;
-	bus->Write(addr, value);
+	bus->cpuWrite(addr, value);
 	CheckByte(value);
 
 }
-void cpu::NOP() {
+void CPU::NOP() {
 	//Do nothing
 }
-void cpu::ORA(uint8_t value) {
+void CPU::ORA(uint8_t value) {
 	A = A | value;
 
 	CheckByte(A);
 }
-void cpu::ROL(uint16_t addr) {
-	uint8_t value = bus->Read(addr);
+void CPU::ROL(uint16_t addr) {
+	uint8_t value = bus->cpuRead(addr);
 	bool oldCarry = GetCarry();
 	if (value & 0b10000000) SetCarry(); else ClearCarry();
 	value <<= 1;
@@ -749,10 +747,10 @@ void cpu::ROL(uint16_t addr) {
 	};
 
 	CheckByte(value);
-	bus->Write(addr, value);
+	bus->cpuWrite(addr, value);
 
 }
-void cpu::ROL_A() {
+void CPU::ROL_A() {
 	bool oldCarry = GetCarry();
 
 	if (A & 0b10000000) SetCarry(); else ClearCarry();
@@ -763,7 +761,7 @@ void cpu::ROL_A() {
 	CheckByte(A);
 }
 
-void cpu::ROR_A() {
+void CPU::ROR_A() {
 
 	bool oldCarry = GetCarry();
 	if (A & 0b00000001) SetCarry(); else ClearCarry();
@@ -774,46 +772,46 @@ void cpu::ROR_A() {
 	CheckByte(A);
 }
 
-void cpu::ROR(uint16_t addr) {
-	uint8_t value = bus->Read(addr);
+void CPU::ROR(uint16_t addr) {
+	uint8_t value = bus->cpuRead(addr);
 	bool oldCarry = GetCarry();
 	if (value & 0x01) SetCarry(); else ClearCarry();
 	value >>= 1;
 	if (oldCarry) value |= 0x80;
 	CheckByte(value);
-	bus->Write(addr, value);
+	bus->cpuWrite(addr, value);
 
 }
 
-void cpu::SEC() {
+void CPU::SEC() {
 	SetCarry();
 }
-void cpu::SED() {
+void CPU::SED() {
 	SetDecimal();
 }
-void cpu::SEI() {
+void CPU::SEI() {
 	SetInterrupt();
 }
-void cpu::TSX() {
+void CPU::TSX() {
 	X = S;
 	CheckByte(X);
 }
-void cpu::TXS() {
+void CPU::TXS() {
 	S = X;
 }
 //Register check Function for negaive and 0
-void cpu::CheckByte(uint8_t reg) {
+void CPU::CheckByte(uint8_t reg) {
 	if (reg == 0) { SetZero(); }
 	else { ClearZero(); }
 	if ((reg & 0b10000000) != 0) { SetNegative(); }
 	else { ClearNegative(); }
 
 }
-void cpu::NOP_Illegal() {
+void CPU::NOP_Illegal() {
 
 }
 
-void cpu::InitopcodeTable() {
+void CPU::InitopcodeTable() {
 	for (int i = 0; i < 256; ++i) {
 		if (!opcodeTable[i].handler) {
 			opcodeTable[i] = { [this]() { NOP_Illegal(); }, 2, 3 };
@@ -1025,83 +1023,83 @@ void cpu::InitopcodeTable() {
 //7 6 5 4 3 2 1 0
 //Set P flag bits
 // Register Check Functions
-void cpu::SetCarry() {
+void CPU::SetCarry() {
 	P |= 0b00000001;
 }
-void cpu::SetZero() {
+void CPU::SetZero() {
 	P |= 0b00000010;
 }
-void cpu::SetInterrupt() {
+void CPU::SetInterrupt() {
 	P |= 0b00000100;
 }
-void cpu::SetDecimal() {
+void CPU::SetDecimal() {
 	P |= 0b00001000;
 }
-void cpu::SetBreak() {
+void CPU::SetBreak() {
 	P |= 0b00010000;
 }
-void cpu::SetOverflow() {
+void CPU::SetOverflow() {
 	P |= 0b01000000;
 }
-void cpu::SetNegative() {
+void CPU::SetNegative() {
 	P |= 0b10000000;
 }
-void cpu::SetUnused() {
+void CPU::SetUnused() {
 	P |= 0b00100000;
 }
-void cpu::ClearCarry() { P &= ~0b00000001; }
-void cpu::ClearZero() { P &= ~0b00000010; }
-void cpu::ClearInterrupt() { P &= ~0b00000100; }
-void cpu::ClearDecimal() { P &= ~0b00001000; }
-void cpu::ClearBreak() { P &= ~0b00010000; }
-void cpu::ClearUnused() { P &= ~0b00100000; }
-void cpu::ClearOverflow() { P &= ~0b01000000; }
-void cpu::ClearNegative() { P &= ~0b10000000; }
+void CPU::ClearCarry() { P &= ~0b00000001; }
+void CPU::ClearZero() { P &= ~0b00000010; }
+void CPU::ClearInterrupt() { P &= ~0b00000100; }
+void CPU::ClearDecimal() { P &= ~0b00001000; }
+void CPU::ClearBreak() { P &= ~0b00010000; }
+void CPU::ClearUnused() { P &= ~0b00100000; }
+void CPU::ClearOverflow() { P &= ~0b01000000; }
+void CPU::ClearNegative() { P &= ~0b10000000; }
 //True Set /False Clear
-bool cpu::GetCarry() {
+bool CPU::GetCarry() {
 	return (P & 0b00000001) !=0;
 }
-bool cpu::GetZero() {
+bool CPU::GetZero() {
 	return (P & 0b00000010) != 0;
 }
-bool cpu::GetInterrupt() {
+bool CPU::GetInterrupt() {
 	return (P & 0b00000100) != 0;
 }
-bool cpu::GetDecimal() {
+bool CPU::GetDecimal() {
 	return(P & 0b00001000) != 0;
 }
-bool cpu::GetBreak() {
+bool CPU::GetBreak() {
 	return (P & 0b00010000) != 0;
 }
-bool cpu::GetOverflow() {
+bool CPU::GetOverflow() {
 	return (P & 0b01000000) != 0;
 }
-bool cpu::GetNegative() {
+bool CPU::GetNegative() {
 	return (P & 0b10000000) != 0;
 }
-bool cpu::GetUnused() {
+bool CPU::GetUnused() {
 	return (P & 0b00100000) !=0;
 }
-void cpu::Reset() {
+void CPU::Reset() {
 	//nesdev.org/wiki/CPU_power_up_state
 	//Interrupt set to 1, AXY set to 0, FFFC = 00 and FFFD = x80.S starts at xFD
-	//bus->Write(0xFFFC,0x00);
-	//bus->Write(0xFFFD, 0x80);
-	uint8_t lo = bus->Read(0xFFFC);
-	uint8_t hi = bus->Read(0xFFFD);
+	//bus->cpuWrite(0xFFFC,0x00);
+	//bus->cpuWrite(0xFFFD, 0x80);
+	uint8_t lo = bus->cpuRead(0xFFFC);
+	uint8_t hi = bus->cpuRead(0xFFFD);
 	PC = (hi << 8) | lo;
 	A = 0;
 	Y = 0;
 	X = 0;
 	S = 0xFD;
 	P = 0b00100100;
-	std::printf("Read reset vector: $%04X (lo=$%02X hi=$%02X)\n", PC, lo, hi);
+	std::printf("cpuRead reset vector: $%04X (lo=$%02X hi=$%02X)\n", PC, lo, hi);
 	std::printf("A=$%02X X=$%02X Y=$%02X S=$%02X P=$%02X\n", A, X, Y, S, P);
 	cycles = 7;
 }
-void cpu::clock() {
+void CPU::clock() {
 	if (cycles == 0) {
-		uint8_t opcode = bus->Read(PC);
+		uint8_t opcode = bus->cpuRead(PC);
 		//std::cout << "PC: $" << std::hex << std::uppercase << (int)PC
 		//	<< "  OPCODE: $" << std::setw(2) << std::setfill('0') << (int)opcode << std::endl;
 		//std::cout << "PC=$" << std::setw(4) << PC << " OPCODE=$" << std::setw(2) << (int)opcode << "\n";
@@ -1118,92 +1116,56 @@ void cpu::clock() {
 	clockCycles++;
 	cycles--;
 }
-void cpu::irq() {
+void CPU::irq() {
 	if (!GetInterrupt()) {
-		bus->Write(0x0100 + S,  (PC >> 8) & 0x00FF);
+		bus->cpuWrite(0x0100 + S,  (PC >> 8) & 0x00FF);
 		S--;
-		bus->Write(0x0100 + S, PC & 0x00FF);
+		bus->cpuWrite(0x0100 + S, PC & 0x00FF);
 		S--;
 		ClearBreak();
 		SetUnused();
 		SetInterrupt();
-		bus->Write(0x0100 + S, P);
+		bus->cpuWrite(0x0100 + S, P);
 		S--;
-		uint16_t lo = bus->Read(0xFFFA);      // e.g. returns 0x34
-		uint16_t hi = bus->Read(0xFFFB);      // e.g. returns 0x12
+		uint16_t lo = bus->cpuRead(0xFFFA);      // returns 0x34
+		uint16_t hi = bus->cpuRead(0xFFFB);      // returns 0x12
 		PC = (hi << 8) | lo;                  // PC = 0x1234
 		PC = (hi << 8) | lo;
 		cycles = 7;
 	}
 }
 	
-void cpu::nmi() {
-	bus->Write(0x0100 + S, (PC >> 8) & 0x00FF);
+void CPU::nmi() {
+	bus->cpuWrite(0x0100 + S, (PC >> 8) & 0x00FF);
 	S--;
-	bus->Write(0x0100 + S, PC & 0x00FF);
+	bus->cpuWrite(0x0100 + S, PC & 0x00FF);
 	S--;
 	ClearBreak();
 	SetUnused();
 	SetInterrupt();
-	bus->Write(0x0100 + S, P);
+	bus->cpuWrite(0x0100 + S, P);
 	S--;
-	uint16_t lo = bus->Read(0xFFFA);      // e.g. returns 0x34
-	uint16_t hi = bus->Read(0xFFFB);      // e.g. returns 0x12
+	uint16_t lo = bus->cpuRead(0xFFFA);      // e.g. returns 0x34
+	uint16_t hi = bus->cpuRead(0xFFFB);      // e.g. returns 0x12
 	PC = (hi << 8) | lo;                  // PC = 0x1234
 	PC = (hi << 8) | lo;
 	cycles = 8;
 	}
 
-void cpu::Push(uint8_t value) {
-	bus->Write(0x0100 + S, value);
+void CPU::Push(uint8_t value) {
+	bus->cpuWrite(0x0100 + S, value);
 	S--;
 }
 
-uint8_t cpu::Pop() {
+uint8_t CPU::Pop() {
 	S++;
-	return bus->Read(0x0100 + S);
+	return bus->cpuRead(0x0100 + S);
 }
 
-bool cpu::complete() {
+bool CPU::complete() {
     return cycles == 0;
 }
 
 int main() {
 
-	cpu cpu;
-	Bus bus;
-
-	Cartridge cart("nestest.nes");
-	if (!cart.valid) {
-		std::cerr << "Failed to load cartridge: nestest.nes\n";
-		return -1;
-	}
-	//std::cout << "=== CHECKPOINT: before cartridge assignment ===\n";
-
-	bus.cartridge = &cart;
-	cpu.ConnectBus(&bus);
-	std::cout << "Testing bus read...\n";
-	uint8_t test = bus.Read(0xFFFC);
-	std::cout << "bus.Read(0xFFFC) = $" << std::hex << (int)test << std::endl;
-	std::cout << "FFFC = $" << std::hex << (int)bus.Read(0xFFFC) << "\n";
-	std::cout << "FFFD = $" << std::hex << (int)bus.Read(0xFFFD) << "\n";
-	cpu.Reset();
-	cpu.PC = 0xC000;    // Override to match nestest expectations
-	uint8_t opcode = bus.Read(cpu.PC);
-	uint8_t op1 = bus.Read(cpu.PC + 1);
-	uint8_t op2 = bus.Read(cpu.PC + 2);
-
-	std::printf("Instruction at $%04X: $%02X $%02X $%02X\n", cpu.PC, opcode, op1, op2);
-
-
-	std::ofstream log("actual.log");
-	if (!log.is_open()) {
-		std::cerr << "Failed to open actual.log for writing.\n";
-		return -1;
-	}
-
-	int instructionCount = 0;
-
-	std::cout << "Generated actual.log\n";
-	return 0;
 }

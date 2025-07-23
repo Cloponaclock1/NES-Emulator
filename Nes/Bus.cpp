@@ -1,80 +1,60 @@
 #include "Bus.h"
-#include "cpu.h"
-#include "cartridge.h"
-Cartridge* cartridge = nullptr;
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+
+
 
 
 Bus::Bus() {
+
+}
+
+uint8_t Bus::cpuRead(uint16_t addr) {
+
+	if (addr >= 0x0000 && addr <= 0x1FFF) {
+		return cpuram[addr & 0b0000011111111111]; // keeping the address within the 2Kb range. Cheaper than using modulus, 07ff
+	}if (addr >= 0x2000 <= 0x3FFF) {
+		//PPU
+		// repeats every 8 bytes so same as 0x07 or mod 8 
+		return ppu->cpuRead(addr & 0x0007);
+		
+
+	}if (addr >= 0x8000 && addr <= 0xFFFF) {
+		return cpuram[addr];
+	}
 	
 
-
-
-}
-uint8_t Bus::memory[0x0800] = {};
-
-uint8_t Bus::Read(uint16_t addr) {
-	//Ram
-	if (addr <= 0x1FFF) {
-		// memory is 2KB so wrap around
-		
-		return memory[addr % 0x0800];
-	}
-	//PPU registers
-	//8 bytes in size repeating
-	else if (addr <= 0x3FFF) {
-		//return ppu->Read(addr % 8);
-		return 0;
-
-	}
-	//APU and I/O registers
-	//Not repeated only 1 byte
-	else if (addr <= 0x4017) {
-		//return apu->Read(addr);
-
-	}
-	//Disabled APU and I/O stuff
-	else if (addr <= 0x401F) {
-		return 0;
-	}
-	//Unampped for Cartidge
-	//Not repeated
-	else if (addr <= 0xFFFF) {
-		//return memory[addr];
-		return cartridge ? cartridge->Read(addr) : 0;
-
-	}
-
 }
 
-void Bus::Write(uint16_t addr, uint8_t value) {
+void Bus::cpuWrite(uint16_t addr, uint8_t value) {
 	//Ram
-	if (addr <= 0x1FFF) {
-		// memory is 2KB so wrap around
-
-		memory[addr % 0x0800] = value;
-	}
-	//PPU registers
-	//8 bytes in size repeating
-	else if (addr <= 0x3FFF) {
-		//ppu->Write((addr % 8), value);
-
-	}
-	//APU and I/O registers
-	//Not repeated only 1 byte
-	else if (addr <= 0x4017) {
-		//apu->Write((addr), value);
+	if (addr >= 0x0000 && addr <= 0x1FFF) {
+		cpuram[addr & 0b0000011111111111] = value;
+		 
+		cpuram[addr & 0x07FF] = value;
+	}if (addr >= 0x2000 && addr <= 0x3FFF) {
+		ppu->cpuWrite(addr & 0x0007, value);
+	}if (addr >= 0x8000 && addr <= 0xFFFF) {
+		cpuram[addr] = value;
 
 	}
-	//Disabled APU and I/O stuff
-	else if (addr <= 0x401F) {
-		
-	}
-	//Unampped for Cartidge
-	//Not repeated
-	else if (addr <= 0xFFFF) {
-		//cartridge->Write((addr), value);
-		if (cartridge) cartridge->Write(addr, value);
 
-	}
+	
+}
+void Bus::Clock() {
+	cpu->clock();
+	systemClockCounter += 1;
+}
+void Bus::Reset() {
+	cpu->Reset();
+	systemClockCounter = 0;
+}
+
+void Bus::inputCart(const::std::shared_ptr<Cartridge>& cartidge) {
+	this->cart = cartidge;
+	ppu->inputCart(cartidge);
 
 }
