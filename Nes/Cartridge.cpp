@@ -17,6 +17,14 @@ Cartridge::Cartridge(const std::string& filename) {
 		}
 		inputFile.close();
 	}
+	if (iNes20()) {
+		PRGSize = ((header.data[9] & 0x0F) << 8) | header.data[4];
+		CHRSize = ((header.data[9] & 0xF0) << 4) | header.data[5];
+	}
+	else {
+		PRGSize = header.data[4];
+		CHRSize = header.data[5];
+	}
 }
 bool Cartridge::INESFormat() {
 	if (header.data[0] == 'N' && header.data[1] == 'E' && header.data[2] == 'S' && header.data[3] == 0x1A)
@@ -34,6 +42,7 @@ int Cartridge::getMapper20() {
 
 }
 bool Cartridge::iNes20() {
+	INESFormat();
 	if (iNESFormat == true && (header.data[7] & 0x0C) == 0x08)
 		NES20Format = true;
 	return NES20Format;
@@ -41,6 +50,7 @@ bool Cartridge::iNes20() {
 int Cartridge::getPRGRomSize20() {
 	// Byte 9 LSB<<BYTE 4
 	int bankAmount =  ( ((header.data[9] &0x0F)<<8 )|(header.data[4]));
+
 	return bankAmount * bankSize;
 }
 int Cartridge::getPRGRomSize10() {
@@ -82,4 +92,11 @@ int Cartridge::getPRGRamSizeNonVol() {
 int Cartridge::getTiming() {
 	//0 NTSC, 1 PAL, 2 Multi, 3 Dendy
 	return (header.data[12] & 0x03);
+}
+
+bool Cartridge::cpuRead(uint16_t addr, uint8_t &value) {
+
+}
+bool Cartridge::cpuWrite(uint16_t addr, uint8_t value) {
+
 }

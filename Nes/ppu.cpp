@@ -53,10 +53,21 @@ void PPU::cpuWrite(uint16_t addr, uint8_t data) {
 	}
 
 }
-uint8_t PPU::ppuRead(uint16_t addr) {
-	addr &= 0b0000011111111111;
+uint8_t PPU::ppuRead(uint16_t addr, bool read) {
+	uint8_t data = 0x00;
+	addr &= 0x3FFF;
+
+	if (cart->ppuRead(addr, data)) {
+
+	}
+	return data;
 }
 void PPU::ppuWrite(uint16_t addr, uint8_t data) {
-	addr &= 0b0000011111111111;
+	uint8_t data = 0x00;
+
+	if (cart->ppuWrite(addr, data)){
+	}
+
+	addr &= 0x3FFF;
 
 }

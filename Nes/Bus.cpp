@@ -13,36 +13,31 @@ Bus::Bus() {
 }
 
 uint8_t Bus::cpuRead(uint16_t addr) {
+	uint8_t value = 0x00;
+	if (cart->cpuRead(addr,value)) {
 
-	if (addr >= 0x0000 && addr <= 0x1FFF) {
+	}
+
+	else if (addr >= 0x0000 && addr <= 0x1FFF) {
 		return cpuram[addr & 0b0000011111111111]; // keeping the address within the 2Kb range. Cheaper than using modulus, 07ff
-	}if (addr >= 0x2000 <= 0x3FFF) {
-		//PPU
+	}
+	else if (addr >= 0x2000 <= 0x3FFF) {
 		// repeats every 8 bytes so same as 0x07 or mod 8 
 		return ppu->cpuRead(addr & 0x0007);
-		
 
-	}if (addr >= 0x8000 && addr <= 0xFFFF) {
-		return cpuram[addr];
 	}
-	
-
 }
 
 void Bus::cpuWrite(uint16_t addr, uint8_t value) {
 	//Ram
-	if (addr >= 0x0000 && addr <= 0x1FFF) {
-		cpuram[addr & 0b0000011111111111] = value;
-		 
-		cpuram[addr & 0x07FF] = value;
-	}if (addr >= 0x2000 && addr <= 0x3FFF) {
-		ppu->cpuWrite(addr & 0x0007, value);
-	}if (addr >= 0x8000 && addr <= 0xFFFF) {
-		cpuram[addr] = value;
+	if (cart->cpuWrite(addr, value)) {
 
 	}
-
-	
+	else if (addr >= 0x0000 && addr <= 0x1FFF) {
+		cpuram[addr & 0x07FF] = value;
+	}else if (addr >= 0x2000 && addr <= 0x3FFF) {
+		ppu->cpuWrite(addr & 0x0007, value);
+	}
 }
 void Bus::Clock() {
 	cpu->clock();

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <memory>
+#include "Cartridge.h"
 
 class Cartridge;
 
@@ -27,7 +28,7 @@ private:
 
 public:
 
-	uint8_t cpuRead(uint16_t addr);
+	uint8_t cpuRead(uint16_t addr, bool read);
 	void cpuWrite(uint16_t addr, uint8_t value);
 	uint8_t ppuRead(uint16_t addr);
 	void ppuWrite(uint16_t addr, uint8_t value);

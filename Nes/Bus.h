@@ -3,6 +3,7 @@
 #include <array>
 #include "ppu.h"
 #include "cpu.h"
+#include "Cartridge.h"
 
 
 

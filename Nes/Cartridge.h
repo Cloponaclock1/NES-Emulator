@@ -11,10 +11,10 @@ class Cartridge {
 public:
     Cartridge(const std::string& filename);
 
-    uint8_t cpuRead(uint16_t addr);
-    uint8_t cpuWrite(uint16_t addr);
-    uint8_t ppuRead(uint16_t addr);
-    uint8_t ppuWrite(uint16_t addr);
+    bool cpuRead(uint16_t addr, uint8_t &value);
+    bool cpuWrite(uint16_t addr, uint8_t value);
+    bool ppuRead(uint16_t addr, uint8_t &value);
+    bool ppuWrite(uint16_t addr, uint8_t value);
 
     bool valid = true;
 
@@ -25,9 +25,9 @@ private:
     bool iNESFormat = false;
     bool NES20Format = false;
 
-    uint8_t mapperID =0;
-    uint8_t PRGSize = 0;
-    uint8_t CHRSize = 0;
+    uint16_t mapperID =0;
+    uint16_t PRGSize = 0;
+    uint16_t CHRSize = 0;
 
     struct iNesHeader {
         //Header is 16 bytes
@@ -51,4 +51,5 @@ private:
     int getPRGRamSizeNonVol();
     bool INESFormat();
     int getTiming();
+
 };
