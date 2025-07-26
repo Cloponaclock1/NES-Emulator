@@ -5,11 +5,12 @@
 #include <string>     // for std::string
 #include <iomanip>    // optional if you're using stringstreams for hex formatting
 #include <sstream>    // optional, only if you switch from manual hex formatting
-#include "Bus.h"
+class Bus;
 
 class CPU {
 public:
     CPU();
+
 
     // Make gettr for opcode table varrables and registers, pc and cycles
     typedef void (CPU::* Opcodehandler)();  // Optional for naming clarity

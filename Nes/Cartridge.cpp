@@ -25,10 +25,31 @@ Cartridge::Cartridge(const std::string& filename) {
 		PRGSize = header.data[4];
 		CHRSize = header.data[5];
 	}
+
+
+	switch (mapperID) {
+	case 0: std::make_shared<Mapper_000>(PRGSize, CHRSize); break;
+	}
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
 bool Cartridge::INESFormat() {
 	if (header.data[0] == 'N' && header.data[1] == 'E' && header.data[2] == 'S' && header.data[3] == 0x1A)
 		iNESFormat = true;
+	return true;
 }
 
 
@@ -95,8 +116,47 @@ int Cartridge::getTiming() {
 }
 
 bool Cartridge::cpuRead(uint16_t addr, uint8_t &value) {
-
+	uint32_t mapped_addr = 0;
+	if (Mapper->cpuMapRead(addr, mapped_addr)) {
+		value = prgMemory[mapped_addr];
+		return true;
+	}
+	else
+	return false;
 }
 bool Cartridge::cpuWrite(uint16_t addr, uint8_t value) {
-
+	uint32_t mapped_addr = 0;
+	if (Mapper->cpuMapRead(addr, mapped_addr)) {
+		value = prgMemory[mapped_addr];
+		return true;
+	}
+	else
+		return false;
 }
+bool Cartridge::ppuRead(uint16_t addr, uint8_t& value) {
+	uint32_t mapped_addr = 0;
+	if (Mapper->ppuMapRead(addr, mapped_addr)) {
+		value = chrMemory[mapped_addr];
+		return true;
+	}
+	else
+		return false;
+};
+bool Cartridge::ppuWrite(uint16_t addr, uint8_t value) {
+	uint32_t mapped_addr = 0;
+	if (Mapper->ppuMapRead(addr, mapped_addr)) {
+		value = chrMemory[mapped_addr];
+		return true;
+	}
+	else
+		return false;
+}
+int Cartridge::getPRGSize() {
+	return PRGSize;
+};
+int Cartridge::getCHRSize() {
+	return CHRSize;
+
+
+};
+;

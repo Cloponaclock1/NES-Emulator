@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include "cpu.h"
+#include "Bus.h"
 
 CPU::CPU() {
 	InitopcodeTable();
@@ -1083,8 +1084,8 @@ bool CPU::GetUnused() {
 void CPU::Reset() {
 	//nesdev.org/wiki/CPU_power_up_state
 	//Interrupt set to 1, AXY set to 0, FFFC = 00 and FFFD = x80.S starts at xFD
-	//bus->cpuWrite(0xFFFC,0x00);
-	//bus->cpuWrite(0xFFFD, 0x80);
+
+
 	uint8_t lo = bus->cpuRead(0xFFFC);
 	uint8_t hi = bus->cpuRead(0xFFFD);
 	PC = (hi << 8) | lo;
@@ -1166,6 +1167,3 @@ bool CPU::complete() {
     return cycles == 0;
 }
 
-int main() {
-
-}

@@ -5,9 +5,6 @@
 #include <iostream>
 
 
-
-
-
 Bus::Bus() {
 
 }
@@ -19,11 +16,11 @@ uint8_t Bus::cpuRead(uint16_t addr) {
 	}
 
 	else if (addr >= 0x0000 && addr <= 0x1FFF) {
-		return cpuram[addr & 0b0000011111111111]; // keeping the address within the 2Kb range. Cheaper than using modulus, 07ff
+		return cpuram[addr & 0x07FF]; // keeping the address within the 2Kb range. Cheaper than using modulus, 07ff
 	}
 	else if (addr >= 0x2000 <= 0x3FFF) {
 		// repeats every 8 bytes so same as 0x07 or mod 8 
-		return ppu->cpuRead(addr & 0x0007);
+		return ppu->cpuRead(addr & 0x0007, value);
 
 	}
 }
@@ -44,6 +41,12 @@ void Bus::Clock() {
 	systemClockCounter += 1;
 }
 void Bus::Reset() {
+	if (cpu == nullptr) {
+		std::cerr << "CPU's bus pointer is null!\n";
+	}
+	else {
+		std::cout << "CPU is properly connected to bus.\n";
+	}
 	cpu->Reset();
 	systemClockCounter = 0;
 }
@@ -53,3 +56,9 @@ void Bus::inputCart(const::std::shared_ptr<Cartridge>& cartidge) {
 	ppu->inputCart(cartidge);
 
 }
+void Bus::connectCPU(CPU* _cpu) {
+	cpu = _cpu;
+}
+void Bus::connectPPU(PPU* _ppu) {
+	ppu = _ppu;
+ }

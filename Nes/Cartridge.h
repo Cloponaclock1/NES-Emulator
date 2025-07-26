@@ -6,6 +6,7 @@
 #include <array>
 #include <fstream>
 #include <map>
+#include "Mapper_000.h"
 
 class Cartridge {
 public:
@@ -18,7 +19,30 @@ public:
 
     bool valid = true;
 
+    bool iNes20();
+    int getMapper10();
+    int getMapper20();
+
+    int getPRGRomSize10();
+    int getPRGRomSize20();
+
+    int getCHRRomSize20();
+    int getCHRRomSize10();
+    int getCHRRamSizeVol();
+    int getCHRRamSizeNonVol();
+    int getPRGRamSizeVol();
+    int getPRGRamSizeNonVol();
+    bool INESFormat();
+    int getTiming();
+    int getPRGSize();
+    int getCHRSize();
+
+
+
+
+
 private:
+    std::shared_ptr<Mapper> Mapper;
     int bankSize = 16384;
     std::vector<uint8_t> prgMemory;
     std::vector<uint8_t>chrMemory;
@@ -36,20 +60,6 @@ private:
 
 
     std::ifstream inputFile;
-    bool iNes20();
-    int getMapper10();
-    int getMapper20();
 
-    int getPRGRomSize10();
-    int getPRGRomSize20();
-
-    int getCHRRomSize20();
-    int getCHRRomSize10();
-    int getCHRRamSizeVol();
-    int getCHRRamSizeNonVol();
-    int getPRGRamSizeVol();
-    int getPRGRamSizeNonVol();
-    bool INESFormat();
-    int getTiming();
 
 };

@@ -1,7 +1,7 @@
 #include "ppu.h"
 
 
-uint8_t PPU::cpuRead(uint16_t addr) {
+uint8_t PPU::cpuRead(uint16_t addr, bool read) {
 	switch (addr) {
 	case 0: //PPUCTRL
 
@@ -25,6 +25,7 @@ uint8_t PPU::cpuRead(uint16_t addr) {
 		break;
 
 	}
+	return 1;
 }
 
 void PPU::cpuWrite(uint16_t addr, uint8_t data) {
@@ -51,6 +52,7 @@ void PPU::cpuWrite(uint16_t addr, uint8_t data) {
 		break;
 
 	}
+	
 
 }
 uint8_t PPU::ppuRead(uint16_t addr, bool read) {
@@ -63,11 +65,15 @@ uint8_t PPU::ppuRead(uint16_t addr, bool read) {
 	return data;
 }
 void PPU::ppuWrite(uint16_t addr, uint8_t data) {
-	uint8_t data = 0x00;
+	uint8_t value = 0x00;
 
 	if (cart->ppuWrite(addr, data)){
+		return;
 	}
 
 	addr &= 0x3FFF;
-
+	return;
+}
+void PPU::inputCart(const std::shared_ptr<Cartridge>& cart) {
+	this->cart = cart;
 }
