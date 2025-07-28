@@ -8,7 +8,6 @@
 // - Introduction, links and more at the top of imgui.cpp
 
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
 #include <stdio.h>
@@ -17,7 +16,9 @@
 #include "Bus.h"
 #include "Cartridge.h"
 #include "ppu.h"
+#include "cpu.h"
 #include <iostream>
+#include "imgui_impl_sdl2.h"
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -30,38 +31,20 @@ bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
-
-// Main code
-int main(int, char**)
-{
-    //temp bus stuff
-    // 
-    
-    static Bus nes;
-    static CPU cpu;
-    static PPU ppu;
-    static std::shared_ptr<Cartridge> cart = std::make_shared<Cartridge>("Super_mario_brothers.nes");
-    nes.connectCPU(&cpu);
-    cpu.ConnectBus(&nes);
-    nes.connectPPU(&ppu);
-
-    nes.inputCart(cart);
-
-
-
-    std::cout << "here";
-
+void InitNes(Bus& nes, CPU& cpu, PPU& ppu, std::shared_ptr<Cartridge>& cart);
+void DrawGui(std::shared_ptr<Cartridge>& cart, bool& showDemo, bool& showHeader);
 
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
     // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to the latest version of SDL is recommended!)
+bool InitGui(SDL_Window*& window, HWND& hwnd) {
 #ifdef _WIN32
     ::SetProcessDPIAware();
 #endif
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
         printf("Error: %s\n", SDL_GetError());
-        return -1;
+        return false;
     }
 
     // From 2.0.18: Enable native IME.
@@ -72,17 +55,16 @@ int main(int, char**)
     // Setup window
     float main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+DirectX11 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(1280 * main_scale), (int)(720 * main_scale), window_flags);
+    window = SDL_CreateWindow("Dear ImGui SDL2+DirectX11 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)(1280 * main_scale), (int)(720 * main_scale), window_flags);
     if (window == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
-        return -1;
+        return false;
     }
-
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(window, &wmInfo);
-    HWND hwnd = (HWND)wmInfo.info.win.window;
+    hwnd = (HWND)wmInfo.info.win.window;
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -98,6 +80,8 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
+
+
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsLight();
@@ -109,7 +93,18 @@ int main(int, char**)
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForD3D(window);
+
+
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+    return true;
+
+};
+
+
+
+
+
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -126,110 +121,53 @@ int main(int, char**)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf");
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
     //IM_ASSERT(font != nullptr);
+int main(){
+    Bus nes;
+    CPU cpu;
+    PPU ppu;
+    std::shared_ptr<Cartridge> cart;
 
-    // Our state
-    bool show_demo_window = true;
-    bool show_header_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    InitNes(nes, cpu, ppu, cart);
 
-    // Main loop
+    SDL_Window* window = nullptr;
+    HWND hwnd = nullptr;
+
+    if (!InitGui(window, hwnd)) return -1;
+
     bool done = false;
-    while (!done)
-    {
+    bool showDemo = true;
+    bool showHeader = true;
 
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+    while (!done) {
         SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
+        while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
-                done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
-                done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED && event.window.windowID == SDL_GetWindowID(window))
-            {
-                // Release all outstanding references to the swap chain's buffers before resizing.
-                CleanupRenderTarget();
-                g_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-                CreateRenderTarget();
-            }
-        }
-        if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
-        {
-            SDL_Delay(10);
-            continue;
+            if (event.type == SDL_QUIT) done = true;
         }
 
-        // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        DrawGui(cart, showDemo, showHeader);
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Nes Inspector");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("Current game inserted: ");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Cart Window", &show_header_window);
-
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_header_window)
-        {
-            ImGui::Begin("Cartridge Info");
-
-            ImGui::Text("PRG ROM Banks: %d", cart->getPRGSize());
-            ImGui::Text("CHR ROM Banks: %d", cart->getCHRSize());
-            if (cart->iNes20()) {
-                ImGui::Text("Mapper ID 2.0: %d", cart->getMapper20());
-            }
-            else {
-                ImGui::Text("MapperID 1.0: %d", cart->getMapper10());
-            }
-
-            
-
-            ImGui::End();
-        }
-
-        // Rendering
         ImGui::Render();
-        const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+        const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-        g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+        g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-        g_pSwapChain->Present(1, 0); // Present with vsync
-        //g_pSwapChain->Present(0, 0); // Present without vsync
+        g_pSwapChain->Present(1, 0);
     }
 
-    // Cleanup
+    // Shutdown ImGui
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-
     CleanupDeviceD3D();
     SDL_DestroyWindow(window);
     SDL_Quit();
-
     return 0;
 }
-
 // Helper functions to use DirectX11
 bool CreateDeviceD3D(HWND hWnd)
 {
@@ -281,3 +219,66 @@ void CleanupRenderTarget()
 {
     if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
 }
+
+
+void InitNes(Bus& nes, CPU& cpu, PPU& ppu, std::shared_ptr<Cartridge>& cart) {
+
+    cart = std::make_shared<Cartridge>("Super_mario_brothers.nes");
+    nes.connectCPU(&cpu);
+    cpu.ConnectBus(&nes);
+    nes.connectPPU(&ppu);
+
+    nes.inputCart(cart);
+    nes.Reset();
+}
+void DrawGui(std::shared_ptr<Cartridge>& cart, bool& showDemo, bool& showHeader) {
+    if (showDemo)
+        ImGui::ShowDemoWindow(&showDemo);
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    {
+
+
+        ImGui::Begin("Nes Inspector");                          // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("Current game inserted: ");               // Display some text (you can use a format strings too)
+        ImGui::Checkbox("Cart Window", &showHeader);
+
+
+        ImGui::End();
+    }
+
+    // 3. Show another simple window.
+    if (showHeader)
+    {
+        ImGui::Begin("Cartridge Info");
+
+        ImGui::Text("PRG ROM Banks: %d", cart->getPRGSize());
+        ImGui::Text("CHR ROM Banks: %d", cart->getCHRSize());
+
+        if (cart->iNes20()) {
+            ImGui::Text("Mapper ID 2.0: %d", cart->getMapper20());
+            ImGui::Text("PRG ROM Size 2.0: %d", cart->getPRGRomSize20());
+            ImGui::Text("CHR Rom Size 2.0: %d", cart->getCHRRomSize20());
+
+        }
+        else {
+
+            ImGui::Text("MapperID 1.0: %d", cart->getMapper10());
+            ImGui::Text("PRG ROM Size 1.0: %d", cart->getPRGRomSize10());
+            ImGui::Text("CHR Rom Size 1.0: %d", cart->getCHRRomSize10());
+
+        }
+
+        ImGui::Text("PRG Ram Size Non Volitile: %d", cart->getPRGRamSizeNonVol());
+        ImGui::Text("PRG Ram Size Volitile: %d", cart->getPRGRamSizeVol());
+        ImGui::Text("CHR Ram Size Volitile: %d", cart->getCHRRamSizeVol());
+        ImGui::Text("CHR Ram Size Non Volitile: %d", cart->getCHRRamSizeNonVol());
+        ImGui::Text("Region: %d", cart->getTiming());
+
+        ImGui::Text("Header values :");
+
+        ImGui::End();
+    
+    }
+};

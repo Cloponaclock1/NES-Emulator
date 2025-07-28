@@ -21,7 +21,7 @@ private:
 	uint8_t OAMAMA = 0b00000000;
 	std::shared_ptr<Cartridge> cart;
 	// Table is actually 1kb and theres 2, table pattern would be 2 4kb 
-	std::array<uint8_t, 2048>nameTable;
+	std::array<std::array<uint8_t, 1024>, 2> nameTable;
 	std::array<uint8_t, 32>tablePalette;
 	// two 4kb's that are mirrored depnding on mapping type
 	std::array<uint8_t, 8192>tablePattern;

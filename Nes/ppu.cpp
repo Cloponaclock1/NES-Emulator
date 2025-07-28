@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "Cartridge.h"
 
 
 uint8_t PPU::cpuRead(uint16_t addr, bool read) {
@@ -71,7 +72,7 @@ void PPU::ppuWrite(uint16_t addr, uint8_t data) {
 		return;
 	}
 
-	addr &= 0x3FFF;
+	uint16_t index = addr &= 0x3FFF;
 	return;
 }
 void PPU::inputCart(const std::shared_ptr<Cartridge>& cart) {

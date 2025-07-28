@@ -43,7 +43,8 @@ public:
 
 private:
     std::shared_ptr<Mapper> Mapper;
-    int bankSize = 16384;
+    int bankSizePRG = 0x4000;
+    int  bankSizeCHR = 0x2000;
     std::vector<uint8_t> prgMemory;
     std::vector<uint8_t>chrMemory;
     bool iNESFormat = false;
