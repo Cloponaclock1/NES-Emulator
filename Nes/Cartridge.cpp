@@ -15,25 +15,36 @@ Cartridge::Cartridge(const std::string& filename) {
 		if (header.data[6] & 0x04) {
 			inputFile.seekg(512, std::ios_base::cur);
 		}
+		//Need the prg/chr size so I can read that amount
+		if (iNes20()) {
+			PRGSize = ((header.data[9] & 0x0F) << 8) | header.data[4];
+			CHRSize = ((header.data[9] & 0xF0) << 4) | header.data[5];
+		}
+		else {
+			PRGSize = header.data[4];
+			CHRSize = header.data[5];
+		}
+		prgMemory.resize(PRGSize * bankSizePRG);
+		if (CHRSize == 0) {
+			chrMemory.resize(0x2000);
+		}
+		else {
+			chrMemory.resize(CHRSize * bankSizeCHR);
+		}
+		inputFile.read((char*)prgMemory.data(), prgMemory.size());
+		inputFile.read((char*)chrMemory.data(), chrMemory.size());
+
+		//Add more mappers here
+		switch (mapperID) {
+		case 0: Mapper = std::make_shared<Mapper_000>(PRGSize, CHRSize); break;
+		}
+
+
+
+
 		inputFile.close();
 	}
 	
-	if (iNes20()) {
-		PRGSize = ((header.data[9] & 0x0F) << 8) | header.data[4];
-		CHRSize = ((header.data[9] & 0xF0) << 4) | header.data[5];
-	}
-	else {
-		PRGSize = header.data[4];
-		CHRSize = header.data[5];
-	}
-	prgMemory.resize(PRGSize * bankSizePRG);
-	chrMemory.resize(CHRSize * bankSizeCHR);
-
-
-	switch (mapperID) {
-	case 0: Mapper = std::make_shared<Mapper_000>(PRGSize, CHRSize); break;
-	}
-
 
 
 
@@ -41,11 +52,6 @@ Cartridge::Cartridge(const std::string& filename) {
 
 
 }
-
-
-
-
-
 
 
 

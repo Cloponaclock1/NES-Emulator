@@ -12,6 +12,7 @@ class Cartridge {
 public:
     Cartridge(const std::string& filename);
 
+
     bool cpuRead(uint16_t addr, uint8_t &value);
     bool cpuWrite(uint16_t addr, uint8_t value);
     bool ppuRead(uint16_t addr, uint8_t &value);
@@ -36,6 +37,9 @@ public:
     int getTiming();
     int getPRGSize();
     int getCHRSize();
+    const std::vector<std::uint8_t>& getCHRMem() const {
+        return chrMemory;
+    }
 
 
 
@@ -54,6 +58,7 @@ private:
     uint16_t PRGSize = 0;
     uint16_t CHRSize = 0;
 
+    // need to clean up
     struct iNesHeader {
         //Header is 16 bytes
         std::array<uint8_t, 16> data;
@@ -61,6 +66,7 @@ private:
 
 
     std::ifstream inputFile;
+
 
 
 };

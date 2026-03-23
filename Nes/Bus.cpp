@@ -42,7 +42,7 @@ void Bus::Clock() {
 }
 void Bus::Reset() {
 	if (cpu == nullptr) {
-		std::cerr << "CPU's bus pointer is null!\n";
+		std::cerr << "CPU's bus pointer is null\n";
 	}
 	else {
 		std::cout << "CPU is properly connected to bus.\n";

@@ -34,6 +34,8 @@ public:
 	void ppuWrite(uint16_t addr, uint8_t value);
 	void Clock();
 	void inputCart(const std::shared_ptr<Cartridge>& cartridge);
+	
+
 
 
 

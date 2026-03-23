@@ -20,6 +20,13 @@
 #include <iostream>
 #include "imgui_impl_sdl2.h"
 
+
+SDL_Texture* sprPatternTable[2] = { nullptr, nullptr };
+SDL_Texture* sprNameTable[2] = { nullptr,nullptr };
+uint32_t palScreen[0x40];
+uint32_t pixelPatterns[128 * 128];
+
+
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -33,6 +40,7 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 void InitNes(Bus& nes, CPU& cpu, PPU& ppu, std::shared_ptr<Cartridge>& cart);
 void DrawGui(std::shared_ptr<Cartridge>& cart, bool& showDemo, bool& showHeader);
+void setPixelPatterns();
 
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
@@ -126,7 +134,7 @@ int main(){
     CPU cpu;
     PPU ppu;
     std::shared_ptr<Cartridge> cart;
-
+    
     InitNes(nes, cpu, ppu, cart);
 
     SDL_Window* window = nullptr;
@@ -281,4 +289,19 @@ void DrawGui(std::shared_ptr<Cartridge>& cart, bool& showDemo, bool& showHeader)
         ImGui::End();
     
     }
+
+
+
+
 };
+void setPixelPatterns(Cartridge &cart) {
+    //tiles are 16 bytes
+    for (int tile = 0; tile < cart.getCHRSize(); tile+=16) {
+        for (;;) {
+
+        }
+
+
+
+    }
+}
