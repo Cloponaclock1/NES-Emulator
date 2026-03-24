@@ -1,5 +1,6 @@
-﻿#pragma once
+#pragma once
 
+#include <stdint.h>
 #include <vector>
 #include <cstdint>
 #include <string>
@@ -39,6 +40,9 @@ public:
     int getCHRSize();
     const std::vector<std::uint8_t>& getCHRMem() const {
         return chrMemory;
+    }
+    const std::array<uint8_t, 16> & getHeader() const {
+        return header.data;
     }
 
 

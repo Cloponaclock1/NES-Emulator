@@ -1,9 +1,11 @@
-﻿//https://www.nesdev.org/wiki/NES_2.0#Identification
+//https://www.nesdev.org/wiki/NES_2.0#Identification
 
 #include "cartridge.h"
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <stdint.h>
 
 
 Cartridge::Cartridge(const std::string& filename) {

@@ -78,7 +78,7 @@ bool InitGui(SDL_Window*& window, HWND& hwnd) {
     if (!CreateDeviceD3D(hwnd))
     {
         CleanupDeviceD3D();
-        return 1;
+        return false;
     }
 
     // Setup Dear ImGui context
@@ -285,6 +285,14 @@ void DrawGui(std::shared_ptr<Cartridge>& cart, bool& showDemo, bool& showHeader)
         ImGui::Text("Region: %d", cart->getTiming());
 
         ImGui::Text("Header values :");
+        for (int i = 0; i < 16; i++){
+            const auto& h = cart ->getHeader();
+            ImGui::TextWrapped("%02X", h[i]);
+            ImGui::SameLine();
+            if (i ==7){
+                ImGui::Text("");
+            }
+        }
 
         ImGui::End();
     
